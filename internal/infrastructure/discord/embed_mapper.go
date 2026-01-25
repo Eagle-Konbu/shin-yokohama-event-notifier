@@ -33,7 +33,7 @@ func mapNotificationToEmbed(notif *notification.Notification) Embed {
 		Title:       notif.Title(),
 		Description: notif.Description(),
 		Color:       int(notif.Color()),
-		Timestamp:   notif.Timestamp().Format("2006-01-02T15:04:05.000Z"),
+		Timestamp:   notif.Timestamp().UTC().Format("2006-01-02T15:04:05.000Z"),
 		Fields:      make([]EmbedField, 0, len(notif.Fields())),
 	}
 

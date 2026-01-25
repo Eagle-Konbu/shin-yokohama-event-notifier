@@ -53,8 +53,8 @@ func (n *Notification) AddField(name, value string, inline bool) {
 }
 
 // Getters
-func (n *Notification) Title() string       { return n.title }
-func (n *Notification) Description() string { return n.description }
-func (n *Notification) Fields() []Field     { return n.fields }
-func (n *Notification) Color() Color        { return n.color }
+func (n *Notification) Title() string        { return n.title }
+func (n *Notification) Description() string  { return n.description }
+func (n *Notification) Fields() []Field      { return n.fields }
+func (n *Notification) Color() Color         { return n.color }
 func (n *Notification) Timestamp() time.Time { return n.timestamp }
