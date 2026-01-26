@@ -22,6 +22,7 @@ func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.N
 	args := m.Called(ctx, notif)
 	return args.Error(0)
 }
+
 func TestNewHandler(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	svc := service.NewEventNotificationService(mockSender)

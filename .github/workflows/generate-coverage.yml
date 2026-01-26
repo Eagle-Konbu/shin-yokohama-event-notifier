@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  test:
-    name: Test
+  generate-coverage-report:
+    name: Generate Coverage Report
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
