@@ -25,3 +25,4 @@ comment:
 ignore:
   - "**/*_test.go"
   - "**/mocks_test.go"
+  - "cmd/lambda/main.go"
