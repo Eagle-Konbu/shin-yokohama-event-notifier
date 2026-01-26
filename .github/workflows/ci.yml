@@ -63,7 +63,7 @@ jobs:
           version: v2.8.0
 
   goreg:
-    name: Import Organization
+    name: goreg Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
