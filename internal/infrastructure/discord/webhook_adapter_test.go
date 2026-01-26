@@ -11,18 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockWebhookClient is a mock implementation of WebhookClient for testing
 type MockWebhookClient struct {
 	mock.Mock
 }
 
-// Execute implements the WebhookClient.Execute method
 func (m *MockWebhookClient) Execute(ctx context.Context, webhookURL string, payload *WebhookPayload) error {
 	args := m.Called(ctx, webhookURL, payload)
 	return args.Error(0)
 }
 
-// Mock the WebhookAdapter to use MockWebhookClient
 type TestableWebhookAdapter struct {
 	client     *MockWebhookClient
 	webhookURL string
@@ -58,7 +55,6 @@ func TestWebhookAdapter_Send_Success(t *testing.T) {
 	notif := notification.NewNotification("Test Title", "Test Description", notification.ColorBlue)
 	notif.AddField("Field1", "Value1", true)
 
-	// Setup expectations
 	mockClient.On("Execute", ctx, webhookURL, mock.MatchedBy(func(p *WebhookPayload) bool {
 		return len(p.Embeds) == 1 &&
 			p.Embeds[0].Title == "Test Title" &&
@@ -67,10 +63,8 @@ func TestWebhookAdapter_Send_Success(t *testing.T) {
 			len(p.Embeds[0].Fields) == 1
 	})).Return(nil)
 
-	// Execute
 	err := adapter.Send(ctx, notif)
 
-	// Assert
 	require.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -87,13 +81,10 @@ func TestWebhookAdapter_Send_ClientError(t *testing.T) {
 	notif := notification.NewNotification("Test", "Test", notification.ColorRed)
 	expectedErr := errors.New("client error")
 
-	// Setup expectations - client returns error
 	mockClient.On("Execute", ctx, webhookURL, mock.Anything).Return(expectedErr)
 
-	// Execute
 	err := adapter.Send(ctx, notif)
 
-	// Assert
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
 	mockClient.AssertExpectations(t)
@@ -118,10 +109,8 @@ func TestWebhookAdapter_Send_EmbedMapping(t *testing.T) {
 		capturedPayload = args.Get(2).(*WebhookPayload)
 	}).Return(nil)
 
-	// Execute
 	err := adapter.Send(ctx, notif)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedPayload)
 	require.Len(t, capturedPayload.Embeds, 1)
@@ -156,10 +145,8 @@ func TestWebhookAdapter_Send_ContextPropagation(t *testing.T) {
 		capturedCtx = args.Get(0).(context.Context)
 	}).Return(nil)
 
-	// Execute
 	err := adapter.Send(ctx, notif)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedCtx)
 	assert.Equal(t, "testValue", capturedCtx.Value(testKey))

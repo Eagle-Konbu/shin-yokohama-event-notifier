@@ -2,7 +2,6 @@ package errors
 
 import "fmt"
 
-// DomainError represents a domain-specific error
 type DomainError struct {
 	Code    string
 	Message string
@@ -20,7 +19,6 @@ func (e *DomainError) Unwrap() error {
 	return e.Err
 }
 
-// Common error constructors
 func NewInfrastructureError(message string, err error) *DomainError {
 	return &DomainError{
 		Code:    "INFRASTRUCTURE_ERROR",

@@ -9,12 +9,10 @@ import (
 	"time"
 )
 
-// WebhookClient handles HTTP communication with Discord webhook API
 type WebhookClient struct {
 	httpClient *http.Client
 }
 
-// NewWebhookClient creates a new webhook client
 func NewWebhookClient() *WebhookClient {
 	return &WebhookClient{
 		httpClient: &http.Client{
@@ -23,7 +21,6 @@ func NewWebhookClient() *WebhookClient {
 	}
 }
 
-// Execute sends a webhook payload to Discord
 func (c *WebhookClient) Execute(ctx context.Context, webhookURL string, payload *WebhookPayload) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {

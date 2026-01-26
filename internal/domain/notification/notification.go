@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// Notification represents a domain notification entity
 type Notification struct {
 	title       string
 	description string
@@ -13,7 +12,6 @@ type Notification struct {
 	timestamp   time.Time
 }
 
-// Field represents a named field in the notification
 type Field struct {
 	Name   string
 	Value  string
@@ -23,7 +21,6 @@ type Field struct {
 // Color represents the notification color (Discord uses int for colors)
 type Color int
 
-// Predefined colors
 const (
 	ColorBlue   Color = 3447003
 	ColorGreen  Color = 3066993
@@ -32,7 +29,6 @@ const (
 	ColorPurple Color = 10181046
 )
 
-// NewNotification creates a new notification with required fields
 func NewNotification(title, description string, color Color) *Notification {
 	return &Notification{
 		title:       title,
@@ -43,7 +39,6 @@ func NewNotification(title, description string, color Color) *Notification {
 	}
 }
 
-// AddField adds a field to the notification
 func (n *Notification) AddField(name, value string, inline bool) {
 	n.fields = append(n.fields, Field{
 		Name:   name,
@@ -52,7 +47,6 @@ func (n *Notification) AddField(name, value string, inline bool) {
 	})
 }
 
-// Getters
 func (n *Notification) Title() string        { return n.title }
 func (n *Notification) Description() string  { return n.description }
 func (n *Notification) Fields() []Field      { return n.fields }

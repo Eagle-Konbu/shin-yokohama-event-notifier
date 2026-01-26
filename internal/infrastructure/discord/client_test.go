@@ -12,15 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// RoundTripFunc is a custom http.RoundTripper for testing
 type RoundTripFunc func(req *http.Request) (*http.Response, error)
 
-// RoundTrip implements the http.RoundTripper interface
 func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-// newTestClient creates a WebhookClient with a mock transport
 func newTestClient(fn RoundTripFunc) *WebhookClient {
 	return &WebhookClient{
 		httpClient: &http.Client{
@@ -38,21 +35,16 @@ func TestWebhookClient_Execute_Success(t *testing.T) {
 	}
 
 	mockTransport := RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-		// Verify request method
 		assert.Equal(t, http.MethodPost, req.Method)
 
-		// Verify URL
 		assert.Equal(t, webhookURL, req.URL.String())
 
-		// Verify Content-Type header
 		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 
-		// Verify body can be read
 		body, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 		assert.Contains(t, string(body), "Test")
 
-		// Return success response
 		return &http.Response{
 			StatusCode: 200,
 			Body:       io.NopCloser(bytes.NewBuffer([]byte(""))),
@@ -125,7 +117,6 @@ func TestWebhookClient_Execute_NetworkError(t *testing.T) {
 
 func TestWebhookClient_Execute_ContextCancellation(t *testing.T) {
 	mockTransport := RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-		// Check if request context is cancelled
 		select {
 		case <-req.Context().Done():
 			return nil, req.Context().Err()
@@ -136,7 +127,7 @@ func TestWebhookClient_Execute_ContextCancellation(t *testing.T) {
 
 	client := newTestClient(mockTransport)
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancel immediately
+	cancel()
 
 	err := client.Execute(ctx, "https://discord.com/api/webhooks/123/abc", &WebhookPayload{})
 
@@ -169,16 +160,12 @@ func TestWebhookClient_Execute_RequestConstruction(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, capturedReq)
 
-	// Verify URL
 	assert.Equal(t, webhookURL, capturedReq.URL.String())
 
-	// Verify method
 	assert.Equal(t, http.MethodPost, capturedReq.Method)
 
-	// Verify Content-Type header
 	assert.Equal(t, "application/json", capturedReq.Header.Get("Content-Type"))
 
-	// Verify body contains payload data
 	body, err := io.ReadAll(capturedReq.Body)
 	require.NoError(t, err)
 	assert.Contains(t, string(body), "Test Content")

@@ -5,12 +5,10 @@ import (
 	"os"
 )
 
-// Config holds application configuration
 type Config struct {
 	DiscordWebhookURL string
 }
 
-// LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	webhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
 	if webhookURL == "" {

@@ -25,9 +25,7 @@ func TestEventNotificationService_ProcessScheduledEvent_Success(t *testing.T) {
 	ctx := context.Background()
 	eventData := "test-event-data"
 
-	// Setup expectations
 	mockSender.On("Send", ctx, mock.MatchedBy(func(n *notification.Notification) bool {
-		// Verify notification properties
 		return n.Title() == "Scheduled Event Notification" &&
 			n.Color() == notification.ColorBlue &&
 			len(n.Fields()) == 2 &&
@@ -37,10 +35,8 @@ func TestEventNotificationService_ProcessScheduledEvent_Success(t *testing.T) {
 			n.Fields()[1].Value == "Scheduled"
 	})).Return(nil)
 
-	// Execute
 	err := service.ProcessScheduledEvent(ctx, eventData)
 
-	// Assert
 	require.NoError(t, err)
 	mockSender.AssertExpectations(t)
 	mockSender.AssertCalled(t, "Send", ctx, mock.Anything)
@@ -57,10 +53,8 @@ func TestEventNotificationService_ProcessScheduledEvent_DescriptionContainsEvent
 		capturedNotif = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
-	// Execute
 	err := service.ProcessScheduledEvent(ctx, eventData)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedNotif)
 	assert.Contains(t, capturedNotif.Description(), eventData)
@@ -74,13 +68,10 @@ func TestEventNotificationService_ProcessScheduledEvent_SenderError(t *testing.T
 	eventData := "test-event"
 	expectedErr := errors.New("sender error")
 
-	// Setup expectations - sender returns error
 	mockSender.On("Send", ctx, mock.Anything).Return(expectedErr)
 
-	// Execute
 	err := service.ProcessScheduledEvent(ctx, eventData)
 
-	// Assert
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to send notification")
 	assert.ErrorIs(t, err, expectedErr)
@@ -101,10 +92,8 @@ func TestEventNotificationService_ProcessScheduledEvent_ContextPropagation(t *te
 		capturedCtx = args.Get(0).(context.Context)
 	}).Return(nil)
 
-	// Execute
 	err := service.ProcessScheduledEvent(ctx, eventData)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedCtx)
 	assert.Equal(t, "testValue", capturedCtx.Value(testKey))

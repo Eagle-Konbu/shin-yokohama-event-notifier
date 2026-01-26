@@ -75,11 +75,9 @@ func TestMapNotificationToEmbed_TimestampFormat(t *testing.T) {
 
 	embed := mapNotificationToEmbed(notif)
 
-	// Verify timestamp is in RFC3339 format
 	parsedTime, err := time.Parse(time.RFC3339, embed.Timestamp)
 	require.NoError(t, err, "timestamp should be in RFC3339 format")
 
-	// Verify timestamp is close to current time (use UTC for comparison)
 	assert.WithinDuration(t, time.Now().UTC(), parsedTime, 2*time.Second)
 }
 

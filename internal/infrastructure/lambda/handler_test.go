@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockNotificationSender is a mock for testing the handler
 type MockNotificationSender struct {
 	mock.Mock
 }
@@ -40,13 +39,10 @@ func TestHandler_HandleRequest_Success(t *testing.T) {
 	ctx := context.Background()
 	event := json.RawMessage(`{"key": "value", "source": "test"}`)
 
-	// Setup expectations
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
-	// Execute
 	err := handler.HandleRequest(ctx, event)
 
-	// Assert
 	require.NoError(t, err)
 	mockSender.AssertExpectations(t)
 }
@@ -60,13 +56,10 @@ func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	event := json.RawMessage(`{"key": "value"}`)
 	expectedErr := errors.New("sender error")
 
-	// Setup expectations - sender returns error
 	mockSender.On("Send", ctx, mock.Anything).Return(expectedErr)
 
-	// Execute
 	err := handler.HandleRequest(ctx, event)
 
-	// Assert
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to process event")
 	assert.ErrorIs(t, err, expectedErr)
@@ -81,13 +74,10 @@ func TestHandler_HandleRequest_EmptyEvent(t *testing.T) {
 	ctx := context.Background()
 	event := json.RawMessage(`{}`)
 
-	// Setup expectations
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
-	// Execute
 	err := handler.HandleRequest(ctx, event)
 
-	// Assert
 	require.NoError(t, err)
 	mockSender.AssertExpectations(t)
 }
@@ -115,13 +105,10 @@ func TestHandler_HandleRequest_ComplexEventBridgeJSON(t *testing.T) {
 		capturedNotif = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
-	// Execute
 	err := handler.HandleRequest(ctx, event)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedNotif)
-	// Verify the event data is in the notification description
 	assert.Contains(t, capturedNotif.Description(), "Scheduled Event")
 }
 
@@ -140,10 +127,8 @@ func TestHandler_HandleRequest_ContextPropagation(t *testing.T) {
 		capturedCtx = args.Get(0).(context.Context)
 	}).Return(nil)
 
-	// Execute
 	err := handler.HandleRequest(ctx, event)
 
-	// Assert
 	require.NoError(t, err)
 	require.NotNil(t, capturedCtx)
 	assert.Equal(t, "testValue", capturedCtx.Value(testKey))
