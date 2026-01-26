@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 )
 
 func TestMapNotificationToEmbed_BasicFields(t *testing.T) {

@@ -3,7 +3,7 @@
     "commands": [
       {
         "match": "\\.go$",
-        "cmd": "gofmt -w ${file}"
+        "cmd": "goreg -w ${file}"
       }
     ]
   }

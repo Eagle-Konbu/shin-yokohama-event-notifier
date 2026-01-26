@@ -6,11 +6,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 )
 
 type MockNotificationSender struct {
@@ -21,7 +22,6 @@ func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.N
 	args := m.Called(ctx, notif)
 	return args.Error(0)
 }
-
 func TestNewHandler(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	svc := service.NewEventNotificationService(mockSender)

@@ -10,12 +10,6 @@ variable "project_name" {
   default     = "shin-yokohama-event-notifier"
 }
 
-variable "discord_webhook_url" {
-  description = "Discord webhook URL for sending notifications"
-  type        = string
-  sensitive   = true
-}
-
 variable "lambda_memory_size" {
   description = "Memory size for Lambda function in MB"
   type        = number

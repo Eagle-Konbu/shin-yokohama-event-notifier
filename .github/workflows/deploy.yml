@@ -47,11 +47,14 @@ jobs:
         run: task init
 
       - name: Terraform Plan
-        env:
-          TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: task plan
 
       - name: Terraform Apply
-        env:
-          TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: task apply-ci
+
+      - name: Update Discord Webhook Secret
+        run: |
+          SECRET_ARN=$(cd terraform && terraform output -raw discord_webhook_secret_arn)
+          aws secretsmanager put-secret-value \
+            --secret-id "$SECRET_ARN" \
+            --secret-string "${{ secrets.DISCORD_WEBHOOK_URL }}"
