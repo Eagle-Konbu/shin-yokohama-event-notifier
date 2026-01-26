@@ -1,10 +1,8 @@
-data "aws_caller_identity" "current" {}
-
 data "aws_region" "current" {}
 
 locals {
   function_name = "${var.project_name}-lambda"
-  bucket_name   = "${var.project_name}-artifacts-${data.aws_caller_identity.current.account_id}"
+  bucket_name   = "${var.project_name}-artifacts"
 
   common_tags = merge(
     {
