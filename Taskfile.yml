@@ -21,9 +21,14 @@ tasks:
     cmds:
       - golangci-lint run --fix
 
+  build-check:
+    desc: Verify build without producing binary
+    cmds:
+      - go build -o /dev/null ./cmd/lambda/
+
   ci-check:
     desc: Run test, lint, and build checks in parallel (for local verification)
-    deps: [test, lint, build]
+    deps: [test, lint, build-check]
 
   package:
     desc: Package Lambda function into lambda.zip
