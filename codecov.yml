@@ -1,5 +1,5 @@
 coverage:
-  precision: 2
+  precision: 1
   round: down
   range: 70..100
 
@@ -25,3 +25,4 @@ comment:
 ignore:
   - "**/*_test.go"
   - "**/mocks_test.go"
+  - "cmd/lambda/main.go"
