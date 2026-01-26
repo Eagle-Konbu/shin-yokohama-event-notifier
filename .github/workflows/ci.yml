@@ -34,6 +34,22 @@ jobs:
       - name: Run tests
         run: go test -race -v ./...
 
+  test-coverage:
+    name: Generate Test Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
       - name: Generate coverage report
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
@@ -42,6 +58,35 @@ jobs:
         with:
           file: ./coverage.txt
           fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-analysis:
+    name: Generate Test Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install go-junit-report
+        run: go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: Generate JUnit XML report
+        run: |
+          go test -v 2>&1 ./... | go-junit-report -set-exit-code > junit.xml
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
