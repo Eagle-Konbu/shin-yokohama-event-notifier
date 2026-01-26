@@ -110,6 +110,16 @@ Do not:
 
 ---
 
+# Before Committing
+
+Run the following command to verify test, lint, and build before committing:
+
+```
+task ci-check
+```
+
+---
+
 # Instructions for Claude
 
 - Make the smallest reasonable change.

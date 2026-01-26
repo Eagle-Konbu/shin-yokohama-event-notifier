@@ -21,6 +21,10 @@ tasks:
     cmds:
       - golangci-lint run --fix
 
+  ci-check:
+    desc: Run test, lint, and build checks in parallel (for local verification)
+    deps: [test, lint, build]
+
   package:
     desc: Package Lambda function into lambda.zip
     deps: [build]
