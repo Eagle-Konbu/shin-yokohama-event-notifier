@@ -6,9 +6,10 @@ locals {
 
   common_tags = merge(
     {
-      Project     = var.project_name
-      ManagedBy   = "Terraform"
-      Environment = "production"
+      "project-name" = var.project_name
+      Project        = var.project_name
+      ManagedBy      = "Terraform"
+      Environment    = "production"
     },
     var.tags
   )
