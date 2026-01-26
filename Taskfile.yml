@@ -11,6 +11,11 @@ tasks:
     cmds:
       - go test ./...
 
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
   package:
     desc: Package Lambda function into lambda.zip
     deps: [build]

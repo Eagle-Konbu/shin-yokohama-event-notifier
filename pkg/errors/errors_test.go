@@ -102,10 +102,8 @@ func TestDomainError_ErrorIs_Integration(t *testing.T) {
 	originalErr := errors.New("original error")
 	infraErr := NewInfrastructureError("infrastructure issue", originalErr)
 
-	// Test errors.Is() works correctly
 	assert.True(t, errors.Is(infraErr, originalErr))
 
-	// Test errors.As() works correctly
 	var domainErr *DomainError
 	assert.True(t, errors.As(infraErr, &domainErr))
 	assert.Equal(t, "INFRASTRUCTURE_ERROR", domainErr.Code)
@@ -116,13 +114,11 @@ func TestDomainError_ErrorChaining(t *testing.T) {
 	infraErr := NewInfrastructureError("layer 1", baseErr)
 	validationErr := NewValidationError("layer 2")
 
-	// Test infrastructure error chain
 	assert.ErrorIs(t, infraErr, baseErr)
 	assert.Contains(t, infraErr.Error(), "INFRASTRUCTURE_ERROR")
 	assert.Contains(t, infraErr.Error(), "layer 1")
 	assert.Contains(t, infraErr.Error(), "base error")
 
-	// Test validation error (no wrapped error)
 	assert.NotErrorIs(t, validationErr, baseErr)
 	assert.Contains(t, validationErr.Error(), "VALIDATION_ERROR")
 	assert.Contains(t, validationErr.Error(), "layer 2")

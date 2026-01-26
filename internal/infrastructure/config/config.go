@@ -14,18 +14,13 @@ type Config struct {
 	DiscordWebhookURL string
 }
 
-// SecretsManagerClient defines the interface for Secrets Manager operations.
 type SecretsManagerClient interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
-// LoadConfig loads configuration from AWS Secrets Manager.
 func LoadConfig(ctx context.Context) (*Config, error) {
 	return LoadConfigWithClient(ctx, nil)
 }
-
-// LoadConfigWithClient loads configuration using the provided Secrets Manager client.
-// If client is nil, a default client is created.
 func LoadConfigWithClient(ctx context.Context, client SecretsManagerClient) (*Config, error) {
 	secretARN := os.Getenv("SECRET_ARN")
 	if secretARN == "" {
