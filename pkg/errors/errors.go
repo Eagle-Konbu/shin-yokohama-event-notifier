@@ -3,9 +3,9 @@ package errors
 import "fmt"
 
 type DomainError struct {
+	Err     error
 	Code    string
 	Message string
-	Err     error
 }
 
 func (e *DomainError) Error() string {

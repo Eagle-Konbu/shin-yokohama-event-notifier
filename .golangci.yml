@@ -1,0 +1,40 @@
+version: "2"
+run:
+  go: "1.25"
+  timeout: 5m
+linters:
+  enable:
+    - revive
+  settings:
+    errcheck:
+      check-blank: true
+    govet:
+      enable-all: true
+    revive:
+      confidence: 0.8
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - vendor
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - third_party$
+      - builtin$
+      - examples$
