@@ -7,9 +7,9 @@ import (
 type Embed struct {
 	Title       string       `json:"title,omitempty"`
 	Description string       `json:"description,omitempty"`
-	Color       int          `json:"color,omitempty"`
 	Timestamp   string       `json:"timestamp,omitempty"`
 	Fields      []EmbedField `json:"fields,omitempty"`
+	Color       int          `json:"color,omitempty"`
 }
 
 type EmbedField struct {

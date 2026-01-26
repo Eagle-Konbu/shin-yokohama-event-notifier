@@ -5,11 +5,11 @@ import (
 )
 
 type Notification struct {
+	timestamp   time.Time
 	title       string
 	description string
 	fields      []Field
 	color       Color
-	timestamp   time.Time
 }
 
 type Field struct {
