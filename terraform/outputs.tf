@@ -22,3 +22,8 @@ output "cloudwatch_log_group" {
   description = "CloudWatch log group name"
   value       = aws_cloudwatch_log_group.lambda.name
 }
+
+output "discord_webhook_secret_arn" {
+  description = "ARN of the Secrets Manager secret for Discord webhook URL"
+  value       = aws_secretsmanager_secret.discord_webhook.arn
+}

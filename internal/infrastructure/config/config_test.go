@@ -1,16 +1,37 @@
 package config
 
 import (
+	"context"
+	"errors"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadConfig_Success(t *testing.T) {
-	t.Setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/123/abc")
+// mockSecretsManagerClient is a mock implementation of SecretsManagerClient.
+type mockSecretsManagerClient struct {
+	getSecretValueFunc func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
+}
 
-	cfg, err := LoadConfig()
+func (m *mockSecretsManagerClient) GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+	return m.getSecretValueFunc(ctx, params, optFns...)
+}
+
+func TestLoadConfig_Success(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
+
+	mockClient := &mockSecretsManagerClient{
+		getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+			return &secretsmanager.GetSecretValueOutput{
+				SecretString: aws.String("https://discord.com/api/webhooks/123/abc"),
+			}, nil
+		},
+	}
+
+	cfg, err := LoadConfigWithClient(context.Background(), mockClient)
 
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
@@ -18,25 +39,48 @@ func TestLoadConfig_Success(t *testing.T) {
 }
 
 func TestLoadConfig_MissingEnvVar(t *testing.T) {
-	// Explicitly unset the environment variable (t.Setenv with empty string)
-	t.Setenv("DISCORD_WEBHOOK_URL", "")
+	t.Setenv("SECRET_ARN", "")
 
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfigWithClient(context.Background(), nil)
 
 	require.Error(t, err)
 	assert.Nil(t, cfg)
-	assert.Contains(t, err.Error(), "DISCORD_WEBHOOK_URL")
+	assert.Contains(t, err.Error(), "SECRET_ARN")
 	assert.Contains(t, err.Error(), "required")
 }
 
-func TestLoadConfig_EmptyEnvVar(t *testing.T) {
-	t.Setenv("DISCORD_WEBHOOK_URL", "")
+func TestLoadConfig_SecretsManagerError(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
 
-	cfg, err := LoadConfig()
+	mockClient := &mockSecretsManagerClient{
+		getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+			return nil, errors.New("access denied")
+		},
+	}
+
+	cfg, err := LoadConfigWithClient(context.Background(), mockClient)
 
 	require.Error(t, err)
 	assert.Nil(t, cfg)
-	assert.Contains(t, err.Error(), "DISCORD_WEBHOOK_URL")
+	assert.Contains(t, err.Error(), "failed to get secret value")
+}
+
+func TestLoadConfig_EmptySecretValue(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
+
+	mockClient := &mockSecretsManagerClient{
+		getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+			return &secretsmanager.GetSecretValueOutput{
+				SecretString: nil,
+			}, nil
+		},
+	}
+
+	cfg, err := LoadConfigWithClient(context.Background(), mockClient)
+
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "secret value is empty")
 }
 
 func TestLoadConfig_ValidURL(t *testing.T) {
@@ -60,9 +104,17 @@ func TestLoadConfig_ValidURL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("DISCORD_WEBHOOK_URL", tc.webhookURL)
+			t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
 
-			cfg, err := LoadConfig()
+			mockClient := &mockSecretsManagerClient{
+				getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+					return &secretsmanager.GetSecretValueOutput{
+						SecretString: aws.String(tc.webhookURL),
+					}, nil
+				},
+			}
+
+			cfg, err := LoadConfigWithClient(context.Background(), mockClient)
 
 			require.NoError(t, err)
 			assert.Equal(t, tc.webhookURL, cfg.DiscordWebhookURL)

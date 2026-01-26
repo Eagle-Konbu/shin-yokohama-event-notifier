@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 )
 
 type MockNotificationSender struct {

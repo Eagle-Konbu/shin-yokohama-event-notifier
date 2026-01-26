@@ -52,6 +52,13 @@ resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
   restrict_public_buckets = true
 }
 
+resource "aws_secretsmanager_secret" "discord_webhook" {
+  name        = "${var.project_name}/discord-webhook-url"
+  description = "Discord webhook URL for ${var.project_name}"
+
+  tags = local.common_tags
+}
+
 resource "aws_iam_role" "lambda_execution" {
   name = "${var.project_name}-lambda-execution-role"
 
@@ -74,6 +81,24 @@ resource "aws_iam_role" "lambda_execution" {
 resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "lambda_secrets_manager" {
+  name = "${var.project_name}-secrets-manager-access"
+  role = aws_iam_role.lambda_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = aws_secretsmanager_secret.discord_webhook.arn
+      }
+    ]
+  })
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {
@@ -108,13 +133,14 @@ resource "aws_lambda_function" "notification" {
 
   environment {
     variables = {
-      DISCORD_WEBHOOK_URL = var.discord_webhook_url
+      SECRET_ARN = aws_secretsmanager_secret.discord_webhook.arn
     }
   }
 
   depends_on = [
     aws_cloudwatch_log_group.lambda,
-    aws_iam_role_policy_attachment.lambda_basic_execution
+    aws_iam_role_policy_attachment.lambda_basic_execution,
+    aws_iam_role_policy.lambda_secrets_manager
   ]
 
   tags = local.common_tags
