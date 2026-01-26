@@ -12,6 +12,7 @@ on:
       - '.github/scripts/check-goreg.sh'
       - '.golangci.yml'
       - 'codecov.yml'
+      - 'goreg.toml'
 
 jobs:
   test:
