@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
     branches:
       - '**'
@@ -12,9 +9,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.25.x', '1.x']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: '1.25.x'
           cache: true
 
       - name: Download dependencies
@@ -32,11 +26,9 @@ jobs:
         run: go test -race -v ./...
 
       - name: Generate coverage report
-        if: matrix.go-version == '1.x'
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
-        if: matrix.go-version == '1.x'
         uses: codecov/codecov-action@v5
         with:
           file: ./coverage.txt
