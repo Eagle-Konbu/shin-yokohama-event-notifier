@@ -11,6 +11,8 @@ permissions:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
 
     defaults:
       run:
