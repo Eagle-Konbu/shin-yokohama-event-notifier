@@ -36,6 +36,30 @@ Do not assume:
 
 ---
 
+# Architecture
+
+This project adopts hexagonal architecture (ports and adapters pattern).
+
+Structure:
+- `domain/`: Core business logic and entities
+- `domain/ports/`: Interfaces for external dependencies
+- `application/`: Use cases and application services
+- `infrastructure/`: Adapter implementations (Discord, HTTP clients, etc.)
+
+Note: Implementation is currently in progress. Not all components follow this structure yet.
+
+The architecture aims to:
+- Isolate business logic from external dependencies
+- Make the code testable without external services
+- Keep dependencies pointing inward
+
+However:
+- Do not over-abstract for this small-scale project
+- Keep it simple and practical
+- Avoid unnecessary layers or indirection
+
+---
+
 # Coding Guidelines
 
 - Prefer Go standard library whenever possible.
