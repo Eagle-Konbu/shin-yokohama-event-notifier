@@ -1,5 +1,8 @@
 # 新横浜イベント通知bot
 
+[![CI](https://github.com/Eagle-Konbu/shin-yokohama-event-notifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Eagle-Konbu/shin-yokohama-event-notifier/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Eagle-Konbu/shin-yokohama-event-notifier/branch/main/graph/badge.svg)](https://codecov.io/gh/Eagle-Konbu/shin-yokohama-event-notifier)
+
 ## Overview
 
 新横浜近辺で開催されるイベント情報を収集し、Discordに通知するためのBot。
