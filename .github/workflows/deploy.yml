@@ -24,9 +24,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Task
-        run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - name: Setup Task
+        uses: go-task/setup-task@v1
 
       - name: Run tests
         run: task test

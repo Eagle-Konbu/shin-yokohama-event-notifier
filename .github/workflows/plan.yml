@@ -27,9 +27,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Install Task
-        run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - name: Setup Task
+        uses: go-task/setup-task@v1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
