@@ -37,6 +37,9 @@ jobs:
       - name: Terraform Init
         run: terraform init -input=false
 
+      - name: Build and package Lambda
+        run: task package
+
       - name: Terraform Plan
         env:
           TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
