@@ -1,0 +1,63 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build Lambda binary for linux/arm64
+    cmds:
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bootstrap ./cmd/lambda/
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  package:
+    desc: Package Lambda function into lambda.zip
+    deps: [build]
+    cmds:
+      - zip -j lambda.zip bootstrap
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -f bootstrap lambda.zip
+
+  init:
+    desc: Initialize Terraform
+    dir: terraform
+    cmds:
+      - terraform init
+
+  plan:
+    desc: Run Terraform plan
+    deps: [package]
+    dir: terraform
+    cmds:
+      - terraform plan
+
+  apply:
+    desc: Apply Terraform changes
+    deps: [package]
+    dir: terraform
+    cmds:
+      - terraform apply
+
+  apply-ci:
+    desc: Apply Terraform changes with auto-approve (for CI/CD)
+    deps: [package]
+    dir: terraform
+    cmds:
+      - terraform apply -auto-approve
+
+  deploy:
+    desc: Build, package, and deploy to AWS
+    cmds:
+      - task: build
+      - task: package
+      - task: apply
+
+  destroy:
+    desc: Destroy all AWS resources
+    dir: terraform
+    cmds:
+      - terraform destroy

@@ -1,0 +1,16 @@
+# Lambda build artifacts
+bootstrap
+lambda.zip
+*.zip
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Terraform sensitive configuration
+terraform.tfvars
+
+# Test coverage reports
+coverage.out
