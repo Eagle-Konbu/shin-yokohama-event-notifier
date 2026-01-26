@@ -22,6 +22,27 @@ resource "aws_s3_bucket" "lambda_artifacts" {
   tags = local.common_tags
 }
 
+resource "aws_s3_bucket_versioning" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  rule {
+    id     = "expire-old-lambda-artifacts"
+    status = "Enabled"
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
   bucket = aws_s3_bucket.lambda_artifacts.id
 
