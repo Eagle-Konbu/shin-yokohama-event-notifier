@@ -9,6 +9,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/ci.yml'
+      - '.github/scripts/check-goreg.sh'
       - '.golangci.yml'
       - 'codecov.yml'
 
@@ -59,6 +60,29 @@ jobs:
         uses: golangci/golangci-lint-action@v9.2.0
         with:
           version: v2.8.0
+
+  goreg:
+    name: Import Organization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Install goreg
+        run: go install github.com/magicdrive/goreg@latest
+
+      - name: Check import organization
+        run: .github/scripts/check-goreg.sh
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
 
   build:
     name: Build
