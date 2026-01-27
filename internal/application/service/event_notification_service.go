@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -26,25 +25,14 @@ func NewEventNotificationService(sender ports.NotificationSender, fetchers []por
 	}
 }
 
-var venueEmojis = map[event.Venue]string{
-	event.VenueYokohamaArena: "🏟️",
-	event.VenueNissanStadium: "⚽",
-	event.VenueSkateCenter:   "⛸️",
-}
-
-var venueOrder = []event.Venue{
-	event.VenueYokohamaArena,
-	event.VenueNissanStadium,
-	event.VenueSkateCenter,
-}
-
 func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error {
-	eventsByVenue, err := s.fetchAllEvents(ctx)
-	if err != nil {
+	venues := event.NewAllVenues()
+
+	if err := s.fetchAllEvents(ctx, venues); err != nil {
 		return fmt.Errorf("failed to fetch events: %w", err)
 	}
 
-	notif := s.buildNotification(eventsByVenue)
+	notif := s.buildNotification(venues)
 
 	if err := s.notificationSender.Send(ctx, notif); err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
@@ -53,9 +41,11 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 	return nil
 }
 
-func (s *EventNotificationService) fetchAllEvents(ctx context.Context) (map[event.Venue][]event.Event, error) {
-	var mu sync.Mutex
-	eventsByVenue := make(map[event.Venue][]event.Event)
+func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []*event.Venue) error {
+	venueMap := make(map[event.VenueID]*event.Venue)
+	for _, v := range venues {
+		venueMap[v.ID] = v
+	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, fetcher := range s.eventFetchers {
@@ -65,44 +55,42 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context) (map[even
 				return err
 			}
 
-			mu.Lock()
-			for _, e := range events {
-				eventsByVenue[e.Venue] = append(eventsByVenue[e.Venue], e)
+			if venue, ok := venueMap[fetcher.VenueID()]; ok {
+				venue.Events = append(venue.Events, events...)
 			}
-			mu.Unlock()
 
 			return nil
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return eventsByVenue, nil
+	return nil
 }
 
-func (s *EventNotificationService) buildNotification(eventsByVenue map[event.Venue][]event.Event) *notification.Notification {
-	color := s.determineColor(eventsByVenue)
+func (s *EventNotificationService) buildNotification(venues []*event.Venue) *notification.Notification {
+	color := s.determineColor(venues)
 	notif := notification.NewNotification(
 		"📅 新横浜 イベント情報",
 		"本日のイベント情報をお知らせします。",
 		color,
 	)
 
-	for _, venue := range venueOrder {
-		fieldName := fmt.Sprintf("%s %s", venueEmojis[venue], string(venue))
-		fieldValue := s.formatVenueEvents(eventsByVenue[venue])
+	for _, venue := range venues {
+		fieldName := fmt.Sprintf("%s %s", venue.Emoji, venue.DisplayName)
+		fieldValue := s.formatVenueEvents(venue.Events)
 		notif.AddField(fieldName, fieldValue, false)
 	}
 
 	return notif
 }
 
-func (s *EventNotificationService) determineColor(eventsByVenue map[event.Venue][]event.Event) notification.Color {
+func (s *EventNotificationService) determineColor(venues []*event.Venue) notification.Color {
 	venuesWithEvents := 0
-	for _, events := range eventsByVenue {
-		if len(events) > 0 {
+	for _, venue := range venues {
+		if len(venue.Events) > 0 {
 			venuesWithEvents++
 		}
 	}

@@ -17,3 +17,7 @@ func NewSkateCenterScraper() ports.EventFetcher {
 func (s *SkateCenterScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (s *SkateCenterScraper) VenueID() event.VenueID {
+	return event.VenueIDSkateCenter
+}

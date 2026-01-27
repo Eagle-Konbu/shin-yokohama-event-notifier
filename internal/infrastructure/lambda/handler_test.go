@@ -26,6 +26,11 @@ func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.N
 
 type MockEventFetcher struct {
 	mock.Mock
+	venueID event.VenueID
+}
+
+func NewMockEventFetcher(venueID event.VenueID) *MockEventFetcher {
+	return &MockEventFetcher{venueID: venueID}
 }
 
 func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
@@ -36,9 +41,13 @@ func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, erro
 	return args.Get(0).([]event.Event), args.Error(1)
 }
 
+func (m *MockEventFetcher) VenueID() event.VenueID {
+	return m.venueID
+}
+
 func TestNewHandler(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
@@ -48,7 +57,7 @@ func TestNewHandler(t *testing.T) {
 
 func TestHandler_HandleRequest_Success(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
@@ -66,7 +75,7 @@ func TestHandler_HandleRequest_Success(t *testing.T) {
 
 func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
@@ -85,7 +94,7 @@ func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 
 func TestHandler_HandleRequest_ContextPropagation(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 

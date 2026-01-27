@@ -8,4 +8,5 @@ import (
 
 type EventFetcher interface {
 	FetchEvents(ctx context.Context) ([]event.Event, error)
+	VenueID() event.VenueID
 }
