@@ -21,6 +21,28 @@ tasks:
     cmds:
       - golangci-lint run --fix
 
+  goreg:
+    desc: Check import organization with goreg
+    cmds:
+      - |
+        FAIL=0
+        for f in $(find . -name "*.go" ! -path "./vendor/*"); do
+          if ! goreg "$f" | diff -q "$f" - >/dev/null 2>&1; then
+            echo "Import organization issue: $f"
+            FAIL=1
+          fi
+        done
+        [ $FAIL -eq 0 ] || exit 1
+
+  build-check:
+    desc: Verify build without producing binary
+    cmds:
+      - go build -o /dev/null ./cmd/lambda/
+
+  ci-check:
+    desc: Run test, lint, goreg, and build checks in parallel (for local verification)
+    deps: [test, lint, goreg, build-check]
+
   package:
     desc: Package Lambda function into lambda.zip
     deps: [build]

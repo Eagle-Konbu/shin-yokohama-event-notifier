@@ -110,6 +110,16 @@ Do not:
 
 ---
 
+# Before Committing
+
+Run the following command to verify test, lint, and build before committing:
+
+```
+task ci-check
+```
+
+---
+
 # Instructions for Claude
 
 - Make the smallest reasonable change.
@@ -117,3 +127,4 @@ Do not:
 - Do not add comments unless they provide meaningful context.
 - If assumptions are unclear, ask before implementing.
 - Briefly explain intent before making non-trivial changes.
+- After editing or creating a `.go` file, run `goreg -w <file>` to organize imports.
