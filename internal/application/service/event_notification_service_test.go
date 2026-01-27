@@ -245,16 +245,42 @@ func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_FetchError(t *testing.T) {
-	_, mockFetcher, service, ctx := setupSingleFetcherService()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("fetch error")
 
 	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, expectedErr)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to fetch events")
 	assert.ErrorIs(t, err, expectedErr)
+
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, "❌ イベント取得エラー", sentNotification.Title())
+	assert.Equal(t, "イベント情報の取得に失敗しました", sentNotification.Description())
+	assert.Equal(t, notification.ColorRed, sentNotification.Color())
+}
+
+func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T) {
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	fetchErr := errors.New("fetch error")
+	sendErr := errors.New("send error")
+
+	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, fetchErr)
+	mockSender.On("Send", ctx, mock.Anything).Return(sendErr)
+
+	err := service.NotifyTodayEvents(ctx)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch events")
+	assert.Contains(t, err.Error(), "failed to send failure notification")
+	assert.ErrorIs(t, err, fetchErr)
 }
 
 func TestNotifyTodayEvents_SendError(t *testing.T) {
