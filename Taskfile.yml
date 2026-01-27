@@ -34,11 +34,6 @@ tasks:
         done
         [ $FAIL -eq 0 ] || exit 1
 
-  goreg-fix:
-    desc: Fix import organization with goreg
-    cmds:
-      - find . -name "*.go" ! -path "./vendor/*" -exec goreg -w {} \;
-
   build-check:
     desc: Verify build without producing binary
     cmds:
