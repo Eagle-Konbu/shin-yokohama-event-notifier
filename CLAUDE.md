@@ -112,7 +112,48 @@ Do not:
 
 # Before Committing
 
-Run the following command to verify test, lint, and build before committing:
+Before Committing
+
+Always run:
+
+```
+task tidy
+task ci-check
+```
+
+## If ci-check fails
+
+### 1. golangci-lint errors
+You MUST fix lint issues using the auto-fix command:
+
+```
+task lint-fix
+```
+
+DO NOT manually edit any files before running `task lint-fix`.
+
+### 2. goreg import organization errors
+Fix import issues using the provided goreg task:
+
+```
+task goreg-fix
+```
+
+If needed, you may run per-file fixes:
+
+```
+goreg -w <filename>
+```
+
+Manual edits are allowed ONLY for the files reported by goreg.
+
+DO NOT modify unrelated files.
+
+### 3. other errors
+You CAN edit files manually.
+
+## Re-run verification
+After fixing issues, run:
 
 ```
 task ci-check
