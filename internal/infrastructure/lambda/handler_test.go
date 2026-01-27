@@ -2,7 +2,6 @@ package lambda
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -11,7 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 )
 
 type MockNotificationSender struct {
@@ -23,9 +24,22 @@ func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.N
 	return args.Error(0)
 }
 
+type MockEventFetcher struct {
+	mock.Mock
+}
+
+func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]event.Event), args.Error(1)
+}
+
 func TestNewHandler(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
+	mockFetcher := new(MockEventFetcher)
+	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
 	require.NotNil(t, handler)
@@ -34,101 +48,58 @@ func TestNewHandler(t *testing.T) {
 
 func TestHandler_HandleRequest_Success(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
+	mockFetcher := new(MockEventFetcher)
+	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
 	ctx := context.Background()
-	event := json.RawMessage(`{"key": "value", "source": "test"}`)
 
+	mockFetcher.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
-	err := handler.HandleRequest(ctx, event)
+	err := handler.HandleRequest(ctx)
 
 	require.NoError(t, err)
 	mockSender.AssertExpectations(t)
+	mockFetcher.AssertExpectations(t)
 }
 
 func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
+	mockFetcher := new(MockEventFetcher)
+	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
 	ctx := context.Background()
-	event := json.RawMessage(`{"key": "value"}`)
-	expectedErr := errors.New("sender error")
+	expectedErr := errors.New("fetch error")
 
-	mockSender.On("Send", ctx, mock.Anything).Return(expectedErr)
+	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, expectedErr)
 
-	err := handler.HandleRequest(ctx, event)
+	err := handler.HandleRequest(ctx)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to process event")
+	assert.Contains(t, err.Error(), "failed to notify today events")
 	assert.ErrorIs(t, err, expectedErr)
-	mockSender.AssertExpectations(t)
-}
-
-func TestHandler_HandleRequest_EmptyEvent(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
-	handler := NewHandler(svc)
-
-	ctx := context.Background()
-	event := json.RawMessage(`{}`)
-
-	mockSender.On("Send", ctx, mock.Anything).Return(nil)
-
-	err := handler.HandleRequest(ctx, event)
-
-	require.NoError(t, err)
-	mockSender.AssertExpectations(t)
-}
-
-func TestHandler_HandleRequest_ComplexEventBridgeJSON(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
-	handler := NewHandler(svc)
-
-	ctx := context.Background()
-	event := json.RawMessage(`{
-		"version": "0",
-		"id": "53dc4d37-cffa-4f76-80c9-8b7d4a4d2eaa",
-		"detail-type": "Scheduled Event",
-		"source": "aws.events",
-		"account": "123456789012",
-		"time": "2024-01-01T00:00:00Z",
-		"region": "us-east-1",
-		"resources": ["arn:aws:events:us-east-1:123456789012:rule/my-schedule"],
-		"detail": {}
-	}`)
-
-	var capturedNotif *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
-	}).Return(nil)
-
-	err := handler.HandleRequest(ctx, event)
-
-	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	assert.Contains(t, capturedNotif.Description(), "Scheduled Event")
+	mockFetcher.AssertExpectations(t)
 }
 
 func TestHandler_HandleRequest_ContextPropagation(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	svc := service.NewEventNotificationService(mockSender)
+	mockFetcher := new(MockEventFetcher)
+	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	handler := NewHandler(svc)
 
 	type contextKey string
 	const testKey contextKey = "testKey"
 	ctx := context.WithValue(context.Background(), testKey, "testValue")
-	event := json.RawMessage(`{"test": "data"}`)
 
 	var capturedCtx context.Context
-	mockSender.On("Send", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+	mockFetcher.On("FetchEvents", mock.Anything).Run(func(args mock.Arguments) {
 		capturedCtx = args.Get(0).(context.Context)
-	}).Return(nil)
+	}).Return([]event.Event{}, nil)
+	mockSender.On("Send", mock.Anything, mock.Anything).Return(nil)
 
-	err := handler.HandleRequest(ctx, event)
+	err := handler.HandleRequest(ctx)
 
 	require.NoError(t, err)
 	require.NotNil(t, capturedCtx)

@@ -49,7 +49,7 @@ func TestWebhookAdapter_Send_Success(t *testing.T) {
 
 	adapter := newTestWebhookAdapter(mockTransport, webhookURL)
 	ctx := context.Background()
-	notif := notification.NewNotification("Test Title", "Test Description", notification.ColorBlue)
+	notif := notification.NewNotification("Test Title", "Test Description", notification.ColorGreen)
 	notif.AddField("Field1", "Value1", true)
 
 	err := adapter.Send(ctx, notif)
@@ -113,7 +113,7 @@ func TestWebhookAdapter_Send_EmbedMapping(t *testing.T) {
 
 	adapter := newTestWebhookAdapter(mockTransport, webhookURL)
 	ctx := context.Background()
-	notif := notification.NewNotification("Title", "Description", notification.ColorPurple)
+	notif := notification.NewNotification("Title", "Description", notification.ColorYellow)
 	notif.AddField("Field1", "Value1", true)
 	notif.AddField("Field2", "Value2", false)
 	notif.AddField("Field3", "Value3", true)

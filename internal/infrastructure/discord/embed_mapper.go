@@ -24,6 +24,7 @@ type WebhookPayload struct {
 	Embeds   []Embed `json:"embeds,omitempty"`
 }
 
+// See docs/discord_message_format.md for format specification.
 func mapNotificationToEmbed(notif *notification.Notification) Embed {
 	embed := Embed{
 		Title:       notif.Title(),

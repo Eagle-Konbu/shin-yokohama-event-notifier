@@ -22,11 +22,9 @@ type Field struct {
 type Color int
 
 const (
-	ColorBlue   Color = 3447003
 	ColorGreen  Color = 3066993
 	ColorYellow Color = 16776960
 	ColorRed    Color = 15158332
-	ColorPurple Color = 10181046
 )
 
 func NewNotification(title, description string, color Color) *Notification {

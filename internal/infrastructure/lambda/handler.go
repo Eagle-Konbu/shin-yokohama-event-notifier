@@ -2,7 +2,6 @@ package lambda
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
@@ -18,11 +17,9 @@ func NewHandler(eventService *service.EventNotificationService) *Handler {
 	}
 }
 
-func (h *Handler) HandleRequest(ctx context.Context, event json.RawMessage) error {
-	eventData := string(event)
-
-	if err := h.eventService.ProcessScheduledEvent(ctx, eventData); err != nil {
-		return fmt.Errorf("failed to process event: %w", err)
+func (h *Handler) HandleRequest(ctx context.Context) error {
+	if err := h.eventService.NotifyTodayEvents(ctx); err != nil {
+		return fmt.Errorf("failed to notify today events: %w", err)
 	}
 
 	return nil
