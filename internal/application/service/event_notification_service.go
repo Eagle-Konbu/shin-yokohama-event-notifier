@@ -55,10 +55,8 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 				return err
 			}
 
-			for _, e := range events {
-				if venue, ok := venueMap[e.Venue]; ok {
-					venue.Events = append(venue.Events, e)
-				}
+			if venue, ok := venueMap[fetcher.VenueID()]; ok {
+				venue.Events = append(venue.Events, events...)
 			}
 
 			return nil

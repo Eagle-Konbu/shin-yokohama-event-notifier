@@ -26,6 +26,11 @@ func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.N
 
 type MockEventFetcher struct {
 	mock.Mock
+	venueID event.VenueID
+}
+
+func NewMockEventFetcher(venueID event.VenueID) *MockEventFetcher {
+	return &MockEventFetcher{venueID: venueID}
 }
 
 func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
@@ -36,9 +41,13 @@ func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, erro
 	return args.Get(0).([]event.Event), args.Error(1)
 }
 
+func (m *MockEventFetcher) VenueID() event.VenueID {
+	return m.venueID
+}
+
 func TestNewEventNotificationService(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 
 	require.NotNil(t, service)
@@ -48,11 +57,15 @@ func TestNewEventNotificationService(t *testing.T) {
 
 func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
-	mockFetcher.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -74,18 +87,21 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 
 func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
 	events := []event.Event{
 		{
 			Title: "テストイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueIDYokohamaArena,
 		},
 	}
-	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -105,23 +121,27 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 
 func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
-	events := []event.Event{
+	arenaEvents := []event.Event{
 		{
 			Title: "横浜アリーナイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueIDYokohamaArena,
 		},
+	}
+	stadiumEvents := []event.Event{
 		{
 			Title: "日産スタジアムイベント",
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
-			Venue: event.VenueIDNissanStadium,
 		},
 	}
-	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(arenaEvents, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -137,28 +157,33 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 
 func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
-	events := []event.Event{
+	arenaEvents := []event.Event{
 		{
 			Title: "横浜アリーナイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueIDYokohamaArena,
 		},
+	}
+	stadiumEvents := []event.Event{
 		{
 			Title: "日産スタジアムイベント",
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
-			Venue: event.VenueIDNissanStadium,
 		},
+	}
+	skateEvents := []event.Event{
 		{
 			Title: "スケートセンターイベント",
 			Date:  time.Date(2026, 1, 28, 10, 0, 0, 0, time.Local),
-			Venue: event.VenueIDSkateCenter,
 		},
 	}
-	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(arenaEvents, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return(skateEvents, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -174,23 +199,25 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 
 func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
 	events := []event.Event{
 		{
 			Title: "イベントB",
 			Date:  time.Date(2026, 1, 28, 19, 0, 0, 0, time.Local),
-			Venue: event.VenueIDYokohamaArena,
 		},
 		{
 			Title: "イベントA",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueIDYokohamaArena,
 		},
 	}
-	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -208,11 +235,15 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 
 func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	ctx := context.Background()
 
-	mockFetcher.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
 	var capturedNotif *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -231,7 +262,7 @@ func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 
 func TestNotifyTodayEvents_FetchError(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	ctx := context.Background()
 	expectedErr := errors.New("fetch error")
@@ -247,7 +278,7 @@ func TestNotifyTodayEvents_FetchError(t *testing.T) {
 
 func TestNotifyTodayEvents_SendError(t *testing.T) {
 	mockSender := new(MockNotificationSender)
-	mockFetcher := new(MockEventFetcher)
+	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	ctx := context.Background()
 	expectedErr := errors.New("send error")

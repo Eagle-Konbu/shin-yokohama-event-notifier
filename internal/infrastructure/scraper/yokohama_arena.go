@@ -17,3 +17,7 @@ func NewYokohamaArenaScraper() ports.EventFetcher {
 func (s *YokohamaArenaScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (s *YokohamaArenaScraper) VenueID() event.VenueID {
+	return event.VenueIDYokohamaArena
+}
