@@ -11,6 +11,11 @@ tasks:
     cmds:
       - go test ./...
 
+  tidy:
+    desc: Run go mod tidy
+    cmds:
+      - go mod tidy
+
   lint:
     desc: Run golangci-lint
     cmds:
@@ -33,6 +38,14 @@ tasks:
           fi
         done
         [ $FAIL -eq 0 ] || exit 1
+
+  goreg-fix:
+    desc: Fix import organization with goreg
+    cmds:
+      - |
+        for f in $(find . -name "*.go" ! -path "./vendor/*"); do
+          goreg -w "$f"
+        done
 
   build-check:
     desc: Verify build without producing binary
