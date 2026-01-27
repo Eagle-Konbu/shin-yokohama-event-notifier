@@ -281,6 +281,7 @@ func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T)
 	assert.Contains(t, err.Error(), "failed to fetch events")
 	assert.Contains(t, err.Error(), "failed to send failure notification")
 	assert.ErrorIs(t, err, fetchErr)
+	assert.ErrorIs(t, err, sendErr)
 }
 
 func TestNotifyTodayEvents_SendError(t *testing.T) {
