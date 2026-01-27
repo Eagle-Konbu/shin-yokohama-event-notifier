@@ -26,18 +26,6 @@ func NewEventNotificationService(sender ports.NotificationSender, fetchers []por
 	}
 }
 
-var venueEmojis = map[event.Venue]string{
-	event.VenueYokohamaArena: "🏟️",
-	event.VenueNissanStadium: "⚽",
-	event.VenueSkateCenter:   "⛸️",
-}
-
-var venueOrder = []event.Venue{
-	event.VenueYokohamaArena,
-	event.VenueNissanStadium,
-	event.VenueSkateCenter,
-}
-
 func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error {
 	eventsByVenue, err := s.fetchAllEvents(ctx)
 	if err != nil {
@@ -53,9 +41,9 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 	return nil
 }
 
-func (s *EventNotificationService) fetchAllEvents(ctx context.Context) (map[event.Venue][]event.Event, error) {
+func (s *EventNotificationService) fetchAllEvents(ctx context.Context) (map[event.VenueID][]event.Event, error) {
 	var mu sync.Mutex
-	eventsByVenue := make(map[event.Venue][]event.Event)
+	eventsByVenue := make(map[event.VenueID][]event.Event)
 
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, fetcher := range s.eventFetchers {
@@ -82,7 +70,7 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context) (map[even
 	return eventsByVenue, nil
 }
 
-func (s *EventNotificationService) buildNotification(eventsByVenue map[event.Venue][]event.Event) *notification.Notification {
+func (s *EventNotificationService) buildNotification(eventsByVenue map[event.VenueID][]event.Event) *notification.Notification {
 	color := s.determineColor(eventsByVenue)
 	notif := notification.NewNotification(
 		"📅 新横浜 イベント情報",
@@ -90,16 +78,16 @@ func (s *EventNotificationService) buildNotification(eventsByVenue map[event.Ven
 		color,
 	)
 
-	for _, venue := range venueOrder {
-		fieldName := fmt.Sprintf("%s %s", venueEmojis[venue], string(venue))
-		fieldValue := s.formatVenueEvents(eventsByVenue[venue])
+	for _, venue := range event.AllVenues() {
+		fieldName := fmt.Sprintf("%s %s", venue.Emoji, venue.DisplayName)
+		fieldValue := s.formatVenueEvents(eventsByVenue[venue.ID])
 		notif.AddField(fieldName, fieldValue, false)
 	}
 
 	return notif
 }
 
-func (s *EventNotificationService) determineColor(eventsByVenue map[event.Venue][]event.Event) notification.Color {
+func (s *EventNotificationService) determineColor(eventsByVenue map[event.VenueID][]event.Event) notification.Color {
 	venuesWithEvents := 0
 	for _, events := range eventsByVenue {
 		if len(events) > 0 {

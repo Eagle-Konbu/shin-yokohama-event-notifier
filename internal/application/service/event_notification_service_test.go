@@ -82,7 +82,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 		{
 			Title: "テストイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueYokohamaArena,
+			Venue: event.VenueIDYokohamaArena,
 		},
 	}
 	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -113,12 +113,12 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 		{
 			Title: "横浜アリーナイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueYokohamaArena,
+			Venue: event.VenueIDYokohamaArena,
 		},
 		{
 			Title: "日産スタジアムイベント",
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
-			Venue: event.VenueNissanStadium,
+			Venue: event.VenueIDNissanStadium,
 		},
 	}
 	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -145,17 +145,17 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 		{
 			Title: "横浜アリーナイベント",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueYokohamaArena,
+			Venue: event.VenueIDYokohamaArena,
 		},
 		{
 			Title: "日産スタジアムイベント",
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
-			Venue: event.VenueNissanStadium,
+			Venue: event.VenueIDNissanStadium,
 		},
 		{
 			Title: "スケートセンターイベント",
 			Date:  time.Date(2026, 1, 28, 10, 0, 0, 0, time.Local),
-			Venue: event.VenueSkateCenter,
+			Venue: event.VenueIDSkateCenter,
 		},
 	}
 	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -182,12 +182,12 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 		{
 			Title: "イベントB",
 			Date:  time.Date(2026, 1, 28, 19, 0, 0, 0, time.Local),
-			Venue: event.VenueYokohamaArena,
+			Venue: event.VenueIDYokohamaArena,
 		},
 		{
 			Title: "イベントA",
 			Date:  time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			Venue: event.VenueYokohamaArena,
+			Venue: event.VenueIDYokohamaArena,
 		},
 	}
 	mockFetcher.On("FetchEvents", mock.Anything).Return(events, nil)
