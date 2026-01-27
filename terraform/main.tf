@@ -122,9 +122,9 @@ resource "aws_lambda_function" "notification" {
   runtime       = "provided.al2023"
   architectures = ["arm64"]
 
-  s3_bucket         = aws_s3_bucket.lambda_artifacts.id
-  s3_key            = aws_s3_object.lambda_package.key
-  source_code_hash  = filebase64sha256("../lambda.zip")
+  s3_bucket        = aws_s3_bucket.lambda_artifacts.id
+  s3_key           = aws_s3_object.lambda_package.key
+  source_code_hash = filebase64sha256("../lambda.zip")
 
   memory_size = var.lambda_memory_size
   timeout     = var.lambda_timeout
