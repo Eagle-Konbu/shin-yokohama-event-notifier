@@ -144,7 +144,7 @@ tasks:
     desc: Generate Terraform documentation
     dir: terraform
     cmds:
-      - terraform-docs markdown table . --output-file README.md
+      - terraform-docs .
 
   tf-check:
     desc: Run all Terraform validation checks (format, validate, lint, security)
