@@ -44,6 +44,9 @@ jobs:
       - name: Terraform Init (Backend Disabled)
         run: terraform init -backend=false
 
+      - name: Build and package Lambda
+        run: task package
+
       - name: Terraform Validate
         run: terraform validate
 
