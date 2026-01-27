@@ -111,6 +111,7 @@ jobs:
       - name: Generate Terraform Docs
         uses: terraform-docs/gh-actions@v1.4.1
         with:
+          working-dir: terraform
           output-file: README.md
           output-method: inject
           fail-on-diff: true
