@@ -65,7 +65,7 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	require.NotNil(t, capturedNotif)
 	assert.Equal(t, "📅 新横浜 イベント情報", capturedNotif.Title())
 	assert.Equal(t, "本日のイベント情報をお知らせします。", capturedNotif.Description())
-	assert.Equal(t, notification.ColorBlue, capturedNotif.Color())
+	assert.Equal(t, notification.ColorGreen, capturedNotif.Color())
 	assert.Len(t, capturedNotif.Fields(), 3)
 	for _, field := range capturedNotif.Fields() {
 		assert.Equal(t, "本日の予定はありません", field.Value)

@@ -109,7 +109,7 @@ func (s *EventNotificationService) determineColor(eventsByVenue map[event.Venue]
 
 	switch venuesWithEvents {
 	case 0:
-		return notification.ColorBlue
+		return notification.ColorGreen
 	case 1:
 		return notification.ColorYellow
 	default:

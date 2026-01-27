@@ -11,7 +11,7 @@ import (
 func TestNewNotification(t *testing.T) {
 	title := "Test Title"
 	description := "Test Description"
-	color := ColorBlue
+	color := ColorGreen
 
 	notif := NewNotification(title, description, color)
 
@@ -25,7 +25,7 @@ func TestNewNotification(t *testing.T) {
 }
 
 func TestNotification_AddField(t *testing.T) {
-	notif := NewNotification("Title", "Description", ColorBlue)
+	notif := NewNotification("Title", "Description", ColorGreen)
 
 	t.Run("add single field", func(t *testing.T) {
 		notif.AddField("Field1", "Value1", true)
@@ -56,7 +56,7 @@ func TestNotification_AddField(t *testing.T) {
 func TestNotification_Getters(t *testing.T) {
 	title := "Test Title"
 	description := "Test Description"
-	color := ColorPurple
+	color := ColorYellow
 	notif := NewNotification(title, description, color)
 	notif.AddField("Field1", "Value1", true)
 
@@ -89,11 +89,9 @@ func TestColor_PredefinedValues(t *testing.T) {
 		color    Color
 		expected int
 	}{
-		{"ColorBlue", ColorBlue, 3447003},
 		{"ColorGreen", ColorGreen, 3066993},
 		{"ColorYellow", ColorYellow, 16776960},
 		{"ColorRed", ColorRed, 15158332},
-		{"ColorPurple", ColorPurple, 10181046},
 	}
 
 	for _, tt := range tests {

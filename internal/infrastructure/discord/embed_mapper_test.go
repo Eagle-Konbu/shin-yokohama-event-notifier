@@ -15,14 +15,14 @@ func TestMapNotificationToEmbed_BasicFields(t *testing.T) {
 	notif := notification.NewNotification(
 		"Test Title",
 		"Test Description",
-		notification.ColorBlue,
+		notification.ColorGreen,
 	)
 
 	embed := mapNotificationToEmbed(notif)
 
 	assert.Equal(t, "Test Title", embed.Title)
 	assert.Equal(t, "Test Description", embed.Description)
-	assert.Equal(t, int(notification.ColorBlue), embed.Color)
+	assert.Equal(t, int(notification.ColorGreen), embed.Color)
 	assert.NotEmpty(t, embed.Timestamp)
 	assert.Empty(t, embed.Fields)
 }
@@ -55,11 +55,9 @@ func TestMapNotificationToEmbed_ColorConversion(t *testing.T) {
 		color       notification.Color
 		expectedInt int
 	}{
-		{"ColorBlue", notification.ColorBlue, 3447003},
 		{"ColorGreen", notification.ColorGreen, 3066993},
 		{"ColorYellow", notification.ColorYellow, 16776960},
 		{"ColorRed", notification.ColorRed, 15158332},
-		{"ColorPurple", notification.ColorPurple, 10181046},
 	}
 
 	for _, tt := range tests {
@@ -72,7 +70,7 @@ func TestMapNotificationToEmbed_ColorConversion(t *testing.T) {
 }
 
 func TestMapNotificationToEmbed_TimestampFormat(t *testing.T) {
-	notif := notification.NewNotification("Title", "Description", notification.ColorBlue)
+	notif := notification.NewNotification("Title", "Description", notification.ColorGreen)
 
 	embed := mapNotificationToEmbed(notif)
 
@@ -92,7 +90,7 @@ func TestMapNotificationToEmbed_EmptyFields(t *testing.T) {
 }
 
 func TestMapNotificationToEmbed_FieldOrderingPreserved(t *testing.T) {
-	notif := notification.NewNotification("Title", "Description", notification.ColorPurple)
+	notif := notification.NewNotification("Title", "Description", notification.ColorYellow)
 	notif.AddField("First", "1", false)
 	notif.AddField("Second", "2", false)
 	notif.AddField("Third", "3", false)
