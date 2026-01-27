@@ -41,6 +41,9 @@ jobs:
         with:
           terraform_version: ~1.0
 
+      - name: Setup Task
+        uses: go-task/setup-task@v1
+
       - name: Terraform Init (Backend Disabled)
         run: terraform init -backend=false
 
