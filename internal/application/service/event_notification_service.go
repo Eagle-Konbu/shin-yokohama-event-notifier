@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,6 +30,17 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 	venues := event.NewAllVenues()
 
 	if err := s.fetchAllEvents(ctx, venues); err != nil {
+		failureNotif := notification.NewNotification(
+			"❌ イベント取得エラー",
+			"イベント情報の取得に失敗しました",
+			notification.ColorRed,
+		)
+		if sendErr := s.notificationSender.Send(ctx, failureNotif); sendErr != nil {
+			return errors.Join(
+				fmt.Errorf("failed to fetch events: %w", err),
+				fmt.Errorf("failed to send failure notification: %w", sendErr),
+			)
+		}
 		return fmt.Errorf("failed to fetch events: %w", err)
 	}
 

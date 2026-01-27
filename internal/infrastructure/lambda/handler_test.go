@@ -83,6 +83,7 @@ func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	expectedErr := errors.New("fetch error")
 
 	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, expectedErr)
+	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)
 
@@ -90,6 +91,7 @@ func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to notify today events")
 	assert.ErrorIs(t, err, expectedErr)
 	mockFetcher.AssertExpectations(t)
+	mockSender.AssertExpectations(t)
 }
 
 func TestHandler_HandleRequest_ContextPropagation(t *testing.T) {
