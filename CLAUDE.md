@@ -159,7 +159,7 @@ task ci-check
 
 ---
 
-# Instructions for Claude
+# Instructions
 
 - Make the smallest reasonable change.
 - Preserve existing behavior unless explicitly instructed otherwise.
