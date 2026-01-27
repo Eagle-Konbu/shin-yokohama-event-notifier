@@ -120,8 +120,8 @@ jobs:
           go-version: '1.25'
           cache: true
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
+      - name: Setup Task
+        uses: go-task/setup-task@v1
 
       - name: Install goreg
         run: go install github.com/magicdrive/goreg@latest
