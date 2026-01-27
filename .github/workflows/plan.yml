@@ -49,6 +49,8 @@ jobs:
       - name: Terraform Plan
         env:
           TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TF_VAR_grafana_url: ${{ secrets.GRAFANA_URL }}
+          TF_VAR_grafana_auth: ${{ secrets.GRAFANA_AUTH }}
         run: terraform plan -input=false -out=tfplan.binary
 
       - name: Post Terraform Plan Comment

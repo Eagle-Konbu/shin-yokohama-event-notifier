@@ -13,18 +13,22 @@ This Terraform configuration manages AWS infrastructure for the shin-yokohama-ev
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.0, < 6.0 |
+| <a name="requirement_grafana"></a> [grafana](#requirement\_grafana) | >= 3.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 5.100.0 |
+| <a name="provider_grafana"></a> [grafana](#provider\_grafana) | 4.25.0 |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region for resource deployment | `string` | `"ap-northeast-1"` | no |
+| <a name="input_grafana_auth"></a> [grafana\_auth](#input\_grafana\_auth) | Grafana Cloud Service Account Token | `string` | n/a | yes |
+| <a name="input_grafana_url"></a> [grafana\_url](#input\_grafana\_url) | Grafana Cloud stack URL (e.g., https://your-stack.grafana.net) | `string` | n/a | yes |
 | <a name="input_lambda_memory_size"></a> [lambda\_memory\_size](#input\_lambda\_memory\_size) | Memory size for Lambda function in MB | `number` | `128` | no |
 | <a name="input_lambda_timeout"></a> [lambda\_timeout](#input\_lambda\_timeout) | Timeout for Lambda function in seconds | `number` | `30` | no |
 | <a name="input_log_retention_days"></a> [log\_retention\_days](#input\_log\_retention\_days) | CloudWatch Logs retention period in days | `number` | `7` | no |
