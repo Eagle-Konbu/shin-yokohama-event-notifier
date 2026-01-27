@@ -33,6 +33,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_artifacts" {
     id     = "expire-old-lambda-artifacts"
     status = "Enabled"
 
+    filter {}
+
     noncurrent_version_expiration {
       noncurrent_days = 30
     }
