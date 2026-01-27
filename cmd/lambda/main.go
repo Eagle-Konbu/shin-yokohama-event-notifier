@@ -21,7 +21,7 @@ func main() {
 	}
 
 	discordSender := discord.NewWebhookAdapter(cfg.DiscordWebhookURL)
-	eventService := service.NewEventNotificationService(discordSender)
+	eventService := service.NewEventNotificationService(discordSender, nil)
 	handler := lambdaHandler.NewHandler(eventService)
 
 	lambda.Start(handler.HandleRequest)
