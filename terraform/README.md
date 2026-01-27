@@ -1,9 +1,3 @@
-# Terraform Configuration
-
-## Usage
-
-This Terraform configuration manages AWS infrastructure for the shin-yokohama-event-notifier project.
-
 <!-- BEGIN_TF_DOCS -->
 # Terraform Configuration
 
