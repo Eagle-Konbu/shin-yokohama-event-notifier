@@ -10,7 +10,7 @@ plugin "aws" {
 }
 
 config {
-  module = false
+  call_module_type = "none"
   force = false
 }
 
