@@ -127,3 +127,4 @@ task ci-check
 - Do not add comments unless they provide meaningful context.
 - If assumptions are unclear, ask before implementing.
 - Briefly explain intent before making non-trivial changes.
+- After editing or creating a `.go` file, run `goreg -w <file>` to organize imports.
