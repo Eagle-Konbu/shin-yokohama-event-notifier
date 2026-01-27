@@ -106,3 +106,52 @@ tasks:
     dir: terraform
     cmds:
       - terraform destroy
+
+  # Terraform validation tasks
+  tf-fmt:
+    desc: Format Terraform files
+    dir: terraform
+    cmds:
+      - terraform fmt -recursive
+
+  tf-fmt-check:
+    desc: Check Terraform formatting
+    dir: terraform
+    cmds:
+      - terraform fmt -check -recursive -diff
+
+  tf-validate:
+    desc: Validate Terraform configuration
+    dir: terraform
+    cmds:
+      - terraform init -backend=false
+      - terraform validate
+
+  tf-lint:
+    desc: Run TFLint on Terraform files
+    dir: terraform
+    cmds:
+      - tflint --init
+      - tflint --format compact
+
+  tf-security:
+    desc: Run tfsec security scan
+    dir: terraform
+    cmds:
+      - tfsec . --format default
+
+  tf-docs:
+    desc: Generate Terraform documentation
+    dir: terraform
+    cmds:
+      - terraform-docs markdown table . --output-file README.md
+
+  tf-check:
+    desc: Run all Terraform validation checks (format, validate, lint, security)
+    deps: [tf-fmt-check, tf-validate, tf-lint, tf-security]
+
+  tf-fix:
+    desc: Auto-fix Terraform formatting and regenerate docs
+    cmds:
+      - task: tf-fmt
+      - task: tf-docs
