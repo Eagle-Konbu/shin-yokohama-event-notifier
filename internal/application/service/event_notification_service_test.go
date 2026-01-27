@@ -76,20 +76,20 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	assert.Equal(t, "📅 新横浜 イベント情報", capturedNotif.Title())
-	assert.Equal(t, "本日のイベント情報をお知らせします。", capturedNotif.Description())
-	assert.Equal(t, notification.ColorGreen, capturedNotif.Color())
-	assert.Len(t, capturedNotif.Fields(), 3)
-	for _, field := range capturedNotif.Fields() {
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, "📅 新横浜 イベント情報", sentNotification.Title())
+	assert.Equal(t, "本日のイベント情報をお知らせします。", sentNotification.Description())
+	assert.Equal(t, notification.ColorGreen, sentNotification.Color())
+	assert.Len(t, sentNotification.Fields(), 3)
+	for _, field := range sentNotification.Fields() {
 		assert.Equal(t, "本日の予定はありません", field.Value)
 	}
 }
@@ -107,18 +107,18 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	assert.Equal(t, notification.ColorYellow, capturedNotif.Color())
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, notification.ColorYellow, sentNotification.Color())
 
-	arenaField := capturedNotif.Fields()[0]
+	arenaField := sentNotification.Fields()[0]
 	assert.Equal(t, "🏟️ 横浜アリーナ", arenaField.Name)
 	assert.Contains(t, arenaField.Value, "・**18:00〜** テストイベント")
 }
@@ -142,16 +142,16 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	assert.Equal(t, notification.ColorRed, capturedNotif.Color())
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, notification.ColorRed, sentNotification.Color())
 }
 
 func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
@@ -179,16 +179,16 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return(skateEvents, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	assert.Equal(t, notification.ColorRed, capturedNotif.Color())
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, notification.ColorRed, sentNotification.Color())
 }
 
 func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
@@ -208,17 +208,17 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
+	require.NotNil(t, sentNotification)
 
-	arenaField := capturedNotif.Fields()[0]
+	arenaField := sentNotification.Fields()[0]
 	assert.Contains(t, arenaField.Value, "・**18:00〜** イベントA\n・**19:00〜** イベントB")
 }
 
@@ -229,19 +229,19 @@ func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 
-	var capturedNotif *notification.Notification
+	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		capturedNotif = args.Get(1).(*notification.Notification)
+		sentNotification = args.Get(1).(*notification.Notification)
 	}).Return(nil)
 
 	err := service.NotifyTodayEvents(ctx)
 
 	require.NoError(t, err)
-	require.NotNil(t, capturedNotif)
-	require.Len(t, capturedNotif.Fields(), 3)
-	assert.Equal(t, "🏟️ 横浜アリーナ", capturedNotif.Fields()[0].Name)
-	assert.Equal(t, "⚽ 日産スタジアム", capturedNotif.Fields()[1].Name)
-	assert.Equal(t, "⛸️ KOSÉ新横浜スケートセンター", capturedNotif.Fields()[2].Name)
+	require.NotNil(t, sentNotification)
+	require.Len(t, sentNotification.Fields(), 3)
+	assert.Equal(t, "🏟️ 横浜アリーナ", sentNotification.Fields()[0].Name)
+	assert.Equal(t, "⚽ 日産スタジアム", sentNotification.Fields()[1].Name)
+	assert.Equal(t, "⛸️ KOSÉ新横浜スケートセンター", sentNotification.Fields()[2].Name)
 }
 
 func TestNotifyTodayEvents_FetchError(t *testing.T) {
