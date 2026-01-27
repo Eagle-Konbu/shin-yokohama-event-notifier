@@ -112,8 +112,6 @@ Do not:
 
 # Before Committing
 
-Before Committing
-
 Always run:
 
 ```
