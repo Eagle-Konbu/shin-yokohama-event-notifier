@@ -40,3 +40,14 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "grafana_url" {
+  description = "Grafana Cloud stack URL (e.g., https://your-stack.grafana.net)"
+  type        = string
+}
+
+variable "grafana_auth" {
+  description = "Grafana Cloud Service Account Token"
+  type        = string
+  sensitive   = true
+}

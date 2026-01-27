@@ -48,9 +48,15 @@ jobs:
 
       - name: Terraform Plan
         run: task plan
+        env:
+          TF_VAR_grafana_url: ${{ secrets.GRAFANA_URL }}
+          TF_VAR_grafana_auth: ${{ secrets.GRAFANA_AUTH }}
 
       - name: Terraform Apply
         run: task apply-ci
+        env:
+          TF_VAR_grafana_url: ${{ secrets.GRAFANA_URL }}
+          TF_VAR_grafana_auth: ${{ secrets.GRAFANA_AUTH }}
 
       - name: Update Discord Webhook Secret
         run: |
