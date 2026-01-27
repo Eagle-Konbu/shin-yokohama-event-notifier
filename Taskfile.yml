@@ -25,10 +25,9 @@ tasks:
     desc: Check import organization with goreg
     cmds:
       - |
-        MODULE="github.com/Eagle-Konbu/shin-yokohama-event-notifier"
         FAIL=0
         for f in $(find . -name "*.go" ! -path "./vendor/*"); do
-          if ! goreg -l "$MODULE" "$f" | diff -q "$f" - >/dev/null 2>&1; then
+          if ! goreg "$f" | diff -q "$f" - >/dev/null 2>&1; then
             echo "Import organization issue: $f"
             FAIL=1
           fi
@@ -38,9 +37,7 @@ tasks:
   goreg-fix:
     desc: Fix import organization with goreg
     cmds:
-      - |
-        MODULE="github.com/Eagle-Konbu/shin-yokohama-event-notifier"
-        find . -name "*.go" ! -path "./vendor/*" -exec goreg -w -l "$MODULE" {} \;
+      - find . -name "*.go" ! -path "./vendor/*" -exec goreg -w {} \;
 
   build-check:
     desc: Verify build without producing binary
