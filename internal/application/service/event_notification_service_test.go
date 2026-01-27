@@ -45,10 +45,24 @@ func (m *MockEventFetcher) VenueID() event.VenueID {
 	return m.venueID
 }
 
-func TestNewEventNotificationService(t *testing.T) {
+func setupSingleFetcherService() (*MockNotificationSender, *MockEventFetcher, *EventNotificationService, context.Context) {
 	mockSender := new(MockNotificationSender)
 	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
+	return mockSender, mockFetcher, service, context.Background()
+}
+
+func setupThreeFetcherService() (*MockNotificationSender, *MockEventFetcher, *MockEventFetcher, *MockEventFetcher, *EventNotificationService, context.Context) {
+	mockSender := new(MockNotificationSender)
+	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
+	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
+	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
+	return mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, context.Background()
+}
+
+func TestNewEventNotificationService(t *testing.T) {
+	_, _, service, _ := setupSingleFetcherService()
 
 	require.NotNil(t, service)
 	assert.NotNil(t, service.notificationSender)
@@ -56,12 +70,7 @@ func TestNewEventNotificationService(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_NoEvents(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
@@ -86,12 +95,7 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	events := []event.Event{
 		{
@@ -120,12 +124,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	arenaEvents := []event.Event{
 		{
@@ -156,12 +155,7 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	arenaEvents := []event.Event{
 		{
@@ -198,12 +192,7 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	events := []event.Event{
 		{
@@ -234,12 +223,7 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
-	ctx := context.Background()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
 	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
@@ -261,10 +245,7 @@ func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_FetchError(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	ctx := context.Background()
+	_, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("fetch error")
 
 	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, expectedErr)
@@ -277,10 +258,7 @@ func TestNotifyTodayEvents_FetchError(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_SendError(t *testing.T) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	ctx := context.Background()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("send error")
 
 	mockFetcher.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
