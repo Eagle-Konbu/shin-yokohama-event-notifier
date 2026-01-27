@@ -18,9 +18,16 @@ type SecretsManagerClient interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
+var loadAWSConfig = config.LoadDefaultConfig
+
+var newSecretsManagerClient = func(cfg aws.Config) SecretsManagerClient {
+	return secretsmanager.NewFromConfig(cfg)
+}
+
 func LoadConfig(ctx context.Context) (*Config, error) {
 	return LoadConfigWithClient(ctx, nil)
 }
+
 func LoadConfigWithClient(ctx context.Context, client SecretsManagerClient) (*Config, error) {
 	secretARN := os.Getenv("SECRET_ARN")
 	if secretARN == "" {
@@ -28,11 +35,11 @@ func LoadConfigWithClient(ctx context.Context, client SecretsManagerClient) (*Co
 	}
 
 	if client == nil {
-		cfg, err := config.LoadDefaultConfig(ctx)
+		cfg, err := loadAWSConfig(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load AWS config: %w", err)
 		}
-		client = secretsmanager.NewFromConfig(cfg)
+		client = newSecretsManagerClient(cfg)
 	}
 
 	result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{

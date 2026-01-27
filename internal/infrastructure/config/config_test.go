@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -119,4 +120,83 @@ func TestLoadConfig_ValidURL(t *testing.T) {
 			assert.Equal(t, tc.webhookURL, cfg.DiscordWebhookURL)
 		})
 	}
+}
+
+func TestLoadConfig_AWSConfigError(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
+
+	originalLoadAWSConfig := loadAWSConfig
+	t.Cleanup(func() { loadAWSConfig = originalLoadAWSConfig })
+
+	loadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, errors.New("failed to load config")
+	}
+
+	cfg, err := LoadConfigWithClient(context.Background(), nil)
+
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "failed to load AWS config")
+}
+
+func TestLoadConfig_WithNilClient(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
+
+	originalLoadAWSConfig := loadAWSConfig
+	originalNewSecretsManagerClient := newSecretsManagerClient
+	t.Cleanup(func() {
+		loadAWSConfig = originalLoadAWSConfig
+		newSecretsManagerClient = originalNewSecretsManagerClient
+	})
+
+	loadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, nil
+	}
+
+	newSecretsManagerClient = func(cfg aws.Config) SecretsManagerClient {
+		return &mockSecretsManagerClient{
+			getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+				return &secretsmanager.GetSecretValueOutput{
+					SecretString: aws.String("https://discord.com/api/webhooks/123/abc"),
+				}, nil
+			},
+		}
+	}
+
+	cfg, err := LoadConfigWithClient(context.Background(), nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "https://discord.com/api/webhooks/123/abc", cfg.DiscordWebhookURL)
+}
+
+func TestLoadConfig_CallsLoadConfigWithClient(t *testing.T) {
+	t.Setenv("SECRET_ARN", "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:test-secret")
+
+	originalLoadAWSConfig := loadAWSConfig
+	originalNewSecretsManagerClient := newSecretsManagerClient
+	t.Cleanup(func() {
+		loadAWSConfig = originalLoadAWSConfig
+		newSecretsManagerClient = originalNewSecretsManagerClient
+	})
+
+	loadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, nil
+	}
+
+	newSecretsManagerClient = func(cfg aws.Config) SecretsManagerClient {
+		return &mockSecretsManagerClient{
+			getSecretValueFunc: func(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
+				return &secretsmanager.GetSecretValueOutput{
+					SecretString: aws.String("https://discord.com/api/webhooks/123/abc"),
+				}, nil
+			},
+		}
+	}
+
+	cfg, err := LoadConfig(context.Background())
+
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "https://discord.com/api/webhooks/123/abc", cfg.DiscordWebhookURL)
 }
