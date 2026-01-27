@@ -1,5 +1,3 @@
-data "aws_region" "current" {}
-
 locals {
   function_name = "${var.project_name}-lambda"
   bucket_name   = "${var.project_name}-artifacts"
