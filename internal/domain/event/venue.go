@@ -15,7 +15,7 @@ type Venue struct {
 	Events      []Event
 }
 
-func AllVenues() []*Venue {
+func NewAllVenues() []*Venue {
 	return []*Venue{
 		{
 			ID:          VenueIDYokohamaArena,
@@ -36,13 +36,4 @@ func AllVenues() []*Venue {
 			Events:      []Event{},
 		},
 	}
-}
-
-func VenueByID(id VenueID) *Venue {
-	for _, v := range AllVenues() {
-		if v.ID == id {
-			return v
-		}
-	}
-	return nil
 }

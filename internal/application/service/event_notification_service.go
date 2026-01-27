@@ -26,7 +26,7 @@ func NewEventNotificationService(sender ports.NotificationSender, fetchers []por
 }
 
 func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error {
-	venues := event.AllVenues()
+	venues := event.NewAllVenues()
 
 	if err := s.fetchAllEvents(ctx, venues); err != nil {
 		return fmt.Errorf("failed to fetch events: %w", err)
