@@ -6,7 +6,6 @@ type Event struct {
 	Title string
 	Date  time.Time
 	Venue Venue
-	URL   string
 }
 
 type Venue string
