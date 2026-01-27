@@ -278,7 +278,8 @@ func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T)
 	err := service.NotifyTodayEvents(ctx)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch events and send failure notification")
+	assert.Contains(t, err.Error(), "failed to fetch events")
+	assert.Contains(t, err.Error(), "failed to send failure notification")
 	assert.ErrorIs(t, err, fetchErr)
 	assert.ErrorIs(t, err, sendErr)
 }

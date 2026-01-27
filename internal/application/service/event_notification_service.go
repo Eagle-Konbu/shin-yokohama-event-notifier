@@ -36,7 +36,10 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 			notification.ColorRed,
 		)
 		if sendErr := s.notificationSender.Send(ctx, failureNotif); sendErr != nil {
-			return fmt.Errorf("failed to fetch events and send failure notification: %w", errors.Join(err, sendErr))
+			return errors.Join(
+				fmt.Errorf("failed to fetch events: %w", err),
+				fmt.Errorf("failed to send failure notification: %w", sendErr),
+			)
 		}
 		return fmt.Errorf("failed to fetch events: %w", err)
 	}
