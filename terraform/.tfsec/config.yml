@@ -1,0 +1,6 @@
+# Minimum severity to report
+severity: MEDIUM
+
+# Exclude specific checks if needed (add as you find false positives)
+exclude: []
+  # Example: - aws-s3-enable-bucket-logging
