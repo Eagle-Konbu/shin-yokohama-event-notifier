@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -35,7 +36,7 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 			notification.ColorRed,
 		)
 		if sendErr := s.notificationSender.Send(ctx, failureNotif); sendErr != nil {
-			return fmt.Errorf("failed to fetch events: %w (failed to send failure notification: %v)", err, sendErr)
+			return fmt.Errorf("failed to fetch events and send failure notification: %w", errors.Join(err, sendErr))
 		}
 		return fmt.Errorf("failed to fetch events: %w", err)
 	}
