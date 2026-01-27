@@ -167,3 +167,17 @@ task ci-check
 - If assumptions are unclear, ask before implementing.
 - Briefly explain intent before making non-trivial changes.
 - After editing or creating a `.go` file, run `goreg -w <file>` to organize imports.
+
+---
+
+# Code Review
+
+When reviewing code, verify that changes comply with the guidelines in this document.
+
+Checklist:
+- [ ] Changes are minimal and localized
+- [ ] No unnecessary abstractions or over-engineering
+- [ ] Hexagonal architecture boundaries are respected
+- [ ] Go standard library is preferred over external dependencies
+- [ ] Errors are wrapped and returned, not swallowed
+- [ ] Comments are meaningful and not redundant
