@@ -121,7 +121,7 @@ KOSÉ新横浜スケートセンターのスクレイパーを実装する
 KOSÉ新横浜スケートセンターの公式サイトからイベント情報を取得するスクレイパーを実装します。
 
 #### 対象URL
-_※URLが確定次第、ここに記載してください_
+https://ticketjam.jp/venues/3442
 
 #### 現状
 - `internal/infrastructure/scraper/skate_center.go` にスケルトン実装が存在
@@ -156,7 +156,7 @@ _※URLが確定次第、ここに記載してください_
 - [ ] `task ci-check` が成功する
 
 #### 参考情報
-- スクレイピング対象: _※URLが確定次第、ここに記載してください_
+- スクレイピング対象: https://ticketjam.jp/venues/3442
 - 既存のスケルトン実装: `internal/infrastructure/scraper/skate_center.go`
 - インターフェース: `internal/domain/ports/event_fetcher.go`
 - ドメインモデル: `internal/domain/event/event.go`
