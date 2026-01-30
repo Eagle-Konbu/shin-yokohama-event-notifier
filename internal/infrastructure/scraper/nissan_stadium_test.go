@@ -448,7 +448,8 @@ func createMockServerMultiDetail(calendarHTML string, detailHTMLMap map[string]s
 			//nolint:errcheck
 			io.WriteString(w, calendarHTML)
 		} else if strings.Contains(r.URL.Path, "detail.php") {
-			eventID := r.URL.Query().Get("id")
+			rawQuery := r.URL.RawQuery
+			eventID := strings.TrimPrefix(rawQuery, "id")
 			if detailHTML, ok := detailHTMLMap[eventID]; ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				//nolint:errcheck

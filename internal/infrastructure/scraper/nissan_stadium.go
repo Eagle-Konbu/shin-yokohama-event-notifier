@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -27,10 +28,12 @@ func NewNissanStadiumScraper() ports.EventFetcher {
 }
 
 type eventCandidate struct {
-	id    string
+	url   string
 	title string
 	date  int
 }
+
+var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
 
 func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
@@ -121,6 +124,7 @@ func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentD
 	title := strings.TrimSpace(row.ChildText("td:nth-child(3) > a:nth-child(2)"))
 	href := row.ChildAttr("td:nth-child(3) > a:nth-child(2)", "href")
 	id := extractEventID(href)
+	detailURL := fmt.Sprintf("%s/calendar/detail.php?id%s", s.baseURL, id)
 
 	slog.Debug("processing row", "date", *currentDate, "title", title, "href", href, "id", id)
 
@@ -130,7 +134,7 @@ func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentD
 
 	slog.Debug("found event candidate", "id", id, "title", title, "date", *currentDate)
 
-	return eventCandidate{id: id, title: title, date: *currentDate}, true
+	return eventCandidate{title: title, date: *currentDate, url: detailURL}, true
 }
 
 func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates []eventCandidate, today time.Time) ([]event.Event, error) {
@@ -139,12 +143,12 @@ func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates
 	eg, ctx := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(5)
 
-	results := make([]event.Event, len(candidates))
-	errs := make([]error, len(candidates))
+	var results []event.Event
+	var errorCount int
 	var mu sync.Mutex
 
-	for i, candidate := range candidates {
-		i, candidate := i, candidate
+	for _, candidate := range candidates {
+		candidate := candidate
 		eg.Go(func() error {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return err
@@ -154,13 +158,21 @@ func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates
 			evt, err := s.fetchEventDetail(ctx, candidate, today)
 
 			mu.Lock()
-			if err != nil {
-				errs[i] = err
-			} else {
-				results[i] = evt
-			}
-			mu.Unlock()
+			defer mu.Unlock()
 
+			if err != nil {
+				if errors.Is(err, errNotForNissanStadium) {
+					slog.Info("skipping event not for Nissan Stadium", "url", candidate.url)
+					return nil
+				}
+				errorCount++
+				slog.Error("failed to fetch event detail", "error", err)
+				return nil
+			}
+
+			if !evt.Date.IsZero() {
+				results = append(results, evt)
+			}
 			return nil
 		})
 	}
@@ -169,54 +181,30 @@ func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates
 		return nil, err
 	}
 
-	var events []event.Event
-	var errorCount int
-	for i := range results {
-		if errs[i] != nil {
-			errorCount++
-			slog.Warn("failed to fetch event detail", "error", errs[i])
-			continue
-		}
-		if !results[i].Date.IsZero() {
-			events = append(events, results[i])
-		}
-	}
-
-	if len(events) == 0 && errorCount > 0 {
+	if len(results) == 0 && errorCount > 0 {
 		return nil, fmt.Errorf("all event detail fetches failed")
 	}
 
-	slog.Debug("event details fetched", "success", len(events), "errors", errorCount)
+	slog.Debug("event details fetched", "success", len(results), "errors", errorCount)
 
-	return events, nil
+	return results, nil
+}
+
+type eventDetailFields struct {
+	title string
+	date  string
+	time  string
+	venue string
 }
 
 func (s *NissanStadiumScraper) fetchEventDetail(ctx context.Context, candidate eventCandidate, today time.Time) (event.Event, error) {
-	c := colly.NewCollector(
-		colly.UserAgent("shin-yokohama-event-notifier/1.0"),
-	)
-
+	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
-	var evt event.Event
-	var eventTitle, eventDate, eventTime, eventVenue string
+	var fields eventDetailFields
 
-	c.OnHTML("table", func(e *colly.HTMLElement) {
-		e.ForEach("tr", func(_ int, row *colly.HTMLElement) {
-			th := strings.TrimSpace(row.ChildText("th"))
-			td := strings.TrimSpace(row.ChildText("td"))
-
-			switch th {
-			case "行事名":
-				eventTitle = td
-			case "期日":
-				eventDate = td
-			case "開始":
-				eventTime = td
-			case "対象施設":
-				eventVenue = td
-			}
-		})
+	c.OnHTML("table tr", func(row *colly.HTMLElement) {
+		s.parseDetailTableRow(row, &fields)
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
@@ -233,39 +221,56 @@ func (s *NissanStadiumScraper) fetchEventDetail(ctx context.Context, candidate e
 		}
 	})
 
-	detailURL := fmt.Sprintf("%s/calendar/detail.php?id=%s", s.baseURL, candidate.id)
-	slog.Debug("fetching event detail", "id", candidate.id, "url", detailURL)
+	slog.Debug("fetching event detail", "url", candidate.url)
 
-	err := c.Visit(detailURL)
-	if err != nil {
-		return evt, fmt.Errorf("failed to visit detail page for event %s: %w", candidate.id, err)
+	if err := c.Visit(candidate.url); err != nil {
+		return event.Event{}, fmt.Errorf("failed to visit detail page for event %s: %w", candidate.url, err)
 	}
 
 	if visitErr != nil {
-		return evt, visitErr
+		return event.Event{}, visitErr
 	}
 
-	if !strings.Contains(eventVenue, "日産スタジアム") {
-		return evt, fmt.Errorf("event %s is not for Nissan Stadium: %s", candidate.id, eventVenue)
+	return s.buildEventFromFields(fields, candidate, today)
+}
+
+func (s *NissanStadiumScraper) parseDetailTableRow(row *colly.HTMLElement, fields *eventDetailFields) {
+	th := strings.TrimSpace(row.ChildText("th"))
+	td := strings.TrimSpace(row.ChildText("td"))
+
+	switch th {
+	case "行事名":
+		fields.title = td
+	case "期日":
+		fields.date = td
+	case "開始":
+		fields.time = td
+	case "対象施設":
+		fields.venue = td
+	}
+}
+
+func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, candidate eventCandidate, today time.Time) (event.Event, error) {
+	if !strings.Contains(fields.venue, "日産スタジアム") {
+		return event.Event{}, errNotForNissanStadium
 	}
 
-	if eventTitle == "" {
-		eventTitle = candidate.title
+	title := fields.title
+	if title == "" {
+		title = candidate.title
 	}
 
+	eventTime := fields.time
 	if eventTime == "" {
 		eventTime = "00:00"
 	}
 
-	parsedDate, err := parseJapaneseDateTime(eventDate, eventTime, today)
+	parsedDate, err := parseJapaneseDateTime(fields.date, eventTime, today)
 	if err != nil {
-		return evt, fmt.Errorf("failed to parse date/time for event %s: %w", candidate.id, err)
+		return event.Event{}, fmt.Errorf("failed to parse date/time for event %s: %w", candidate.url, err)
 	}
 
-	evt.Title = eventTitle
-	evt.Date = parsedDate
-
-	return evt, nil
+	return event.Event{Title: title, Date: parsedDate}, nil
 }
 
 func (s *NissanStadiumScraper) VenueID() event.VenueID {
