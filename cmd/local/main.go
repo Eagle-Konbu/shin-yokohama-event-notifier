@@ -5,11 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"sort"
-	"time"
-
-	"github.com/briandowns/spinner"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
@@ -19,6 +17,10 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
+
 	sendFlag := flag.Bool("send", false, "Send notification to Discord (requires DISCORD_WEBHOOK_URL)")
 	flag.Parse()
 
@@ -41,11 +43,7 @@ func main() {
 	for _, fetcher := range fetchers {
 		venue := venueMap[fetcher.VenueID()]
 
-		s := spinner.New(spinner.CharSets[26], 100*time.Millisecond)
-		s.Prefix = fmt.Sprintf("Fetching %s", venue.DisplayName)
-		s.Start()
 		events, err := fetcher.FetchEvents(ctx)
-		s.Stop()
 
 		if err != nil {
 			fmt.Printf("[%s]\n", venue.DisplayName)
@@ -93,7 +91,11 @@ func printVenue(venue *event.Venue) {
 	})
 
 	for _, e := range venue.Events {
-		fmt.Printf("  %s %s\n", e.Date.Format("15:04"), e.Title)
+		if e.HasStartTime {
+			fmt.Printf("  %s %s\n", e.Date.Format("15:04"), e.Title)
+		} else {
+			fmt.Printf("  --:-- %s\n", e.Title)
+		}
 	}
 	fmt.Println()
 }
