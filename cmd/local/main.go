@@ -39,8 +39,8 @@ func main() {
 	for _, fetcher := range fetchers {
 		venue := venueMap[fetcher.VenueID()]
 
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Suffix = fmt.Sprintf(" Fetching %s...", venue.DisplayName)
+		s := spinner.New(spinner.CharSets[26], 100*time.Millisecond)
+		s.Prefix = fmt.Sprintf("Fetching %s", venue.DisplayName)
 		s.Start()
 		events, err := fetcher.FetchEvents(ctx)
 		s.Stop()
