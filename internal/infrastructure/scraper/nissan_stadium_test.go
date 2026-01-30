@@ -35,10 +35,11 @@ func TestNissanStadiumScraper_VenueID(t *testing.T) {
 
 func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
-	testTime := time.Date(2026, 1, 28, 0, 0, 0, 0, jst)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
 
-	calendarHTML := createMockCalendarHTML(28, "サッカー練習試合", "691aa8fccc37e", "日産スタジアム")
-	detailHTML := createMockDetailHTML("サッカー練習試合", "2026年1月28日", "14:00", "日産スタジアム")
+	calendarHTML := createMockCalendarHTML(currentDay, "サッカー練習試合", "691aa8fccc37e", "日産スタジアム")
+	detailHTML := createMockDetailHTML("サッカー練習試合", fmt.Sprintf("2026年1月%d日", currentDay), "14:00", "日産スタジアム")
 
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
@@ -51,10 +52,9 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	assert.Equal(t, "サッカー練習試合", events[0].Title)
-	assert.Equal(t, 28, events[0].Date.Day())
+	assert.Equal(t, currentDay, events[0].Date.Day())
 	assert.Equal(t, 14, events[0].Date.Hour())
 	assert.Equal(t, 0, events[0].Date.Minute())
-	assert.True(t, events[0].Date.After(testTime) || events[0].Date.Equal(testTime))
 }
 
 func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
@@ -64,9 +64,25 @@ func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
 
 	calendarHTML := fmt.Sprintf(`
 		<html><body>
-		<div>%d 火</div>
-		<a href="detail.php?id=event1">イベント1</a> 日産スタジアム<br>
-		<a href="detail.php?id=event2">イベント2</a> 日産スタジアム<br>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event1">イベント1</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event2">イベント2</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		</body></html>
 	`, currentDay)
 
@@ -118,10 +134,30 @@ func TestNissanStadiumScraper_FetchEvents_FiltersByVenue(t *testing.T) {
 
 	calendarHTML := fmt.Sprintf(`
 		<html><body>
-		<div>%d 火</div>
-		<a href="detail.php?id=event1">イベント1</a> 日産スタジアム<br>
-		<a href="detail.php?id=event2">イベント2</a> 小机競技場<br>
-		<a href="detail.php?id=event3">イベント3</a> しんよこフットボールパーク<br>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event1">イベント1</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">小机競技場</a><a href="detail.php?id=event2">イベント2</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">フットボールパーク</a><a href="detail.php?id=event3">イベント3</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		</body></html>
 	`, currentDay)
 
@@ -155,7 +191,7 @@ func TestNissanStadiumScraper_FetchEvents_CalendarFetchError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, events)
-	assert.Contains(t, err.Error(), "failed to fetch calendar candidates")
+	assert.Contains(t, err.Error(), "failed to fetch event candidates")
 }
 
 func TestNissanStadiumScraper_FetchEvents_ContextCancellation(t *testing.T) {
@@ -204,9 +240,25 @@ func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
 
 	calendarHTML := fmt.Sprintf(`
 		<html><body>
-		<div>%d 火</div>
-		<a href="detail.php?id=event1">イベント1</a> 日産スタジアム<br>
-		<a href="detail.php?id=event2">イベント2</a> 日産スタジアム<br>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event1">イベント1</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event2">イベント2</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		</body></html>
 	`, currentDay)
 
@@ -334,11 +386,23 @@ func createMockCalendarHTML(day int, eventTitle, eventID, venue string) string {
 	return fmt.Sprintf(`
 		<html>
 		<body>
-		<div>%d 火</div>
-		<a href="detail.php?id=%s">%s</a> %s
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">%s</a><a href="detail.php?id=%s">%s</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		</body>
 		</html>
-	`, day, eventID, eventTitle, venue)
+	`, day, venue, eventID, eventTitle)
 }
 
 func createMockDetailHTML(title, date, time, venue string) string {

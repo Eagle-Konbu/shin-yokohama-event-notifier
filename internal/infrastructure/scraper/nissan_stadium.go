@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -39,10 +38,10 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 
 	slog.Info("fetching nissan stadium events", "date", today.Format("2006-01-02"))
 
-	candidates, err := s.fetchCalendarCandidates(ctx, today)
+	candidates, err := s.retrieveEventCandidates(ctx, today)
 	if err != nil {
-		slog.Error("failed to fetch calendar candidates", "error", err)
-		return nil, fmt.Errorf("failed to fetch calendar candidates: %w", err)
+		slog.Error("failed to fetch event candidates", "error", err)
+		return nil, fmt.Errorf("failed to fetch event candidates: %w", err)
 	}
 
 	if len(candidates) == 0 {
@@ -63,49 +62,22 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 	return events, nil
 }
 
-func (s *NissanStadiumScraper) fetchCalendarCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
-	c := colly.NewCollector(
-		colly.UserAgent("shin-yokohama-event-notifier/1.0"),
-	)
-
+func (s *NissanStadiumScraper) retrieveEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
+	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
 	var candidates []eventCandidate
 	var currentDate int
+	targetDay := today.Day()
 
-	datePattern := regexp.MustCompile(`^(\d{1,2})\s*[日月火水木金土祝]+$`)
-
-	c.OnHTML("body", func(e *colly.HTMLElement) {
-		e.ForEach("*", func(_ int, el *colly.HTMLElement) {
-			text := strings.TrimSpace(el.Text)
-
-			if matches := datePattern.FindStringSubmatch(text); len(matches) > 1 {
-				//nolint:errcheck
-				fmt.Sscanf(matches[1], "%d", &currentDate)
-			}
-
-			if currentDate == today.Day() && el.Name == "a" {
-				href := el.Attr("href")
-				if strings.Contains(href, "detail.php?id") {
-					linkText := el.Text
-					fullText := el.DOM.Parent().Text()
-
-					if strings.Contains(fullText, "日産スタジアム") {
-						eventID := extractEventID(href)
-						if eventID != "" {
-							candidates = append(candidates, eventCandidate{
-								id:    eventID,
-								date:  currentDate,
-								title: strings.TrimSpace(linkText),
-							})
-						}
-					}
-				}
-			}
-		})
+	c.OnHTML("#areacontents01 > div:nth-child(2) > table > tbody tr", func(row *colly.HTMLElement) {
+		if candidate, ok := s.parseCalendarRow(row, &currentDate, targetDay); ok {
+			candidates = append(candidates, candidate)
+		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
+		slog.Error("error during calendar scraping", "status", r.StatusCode, "error", err)
 	})
 
 	var visitErr error
@@ -121,8 +93,7 @@ func (s *NissanStadiumScraper) fetchCalendarCandidates(ctx context.Context, toda
 	calendarURL := s.baseURL + "/calendar/"
 	slog.Debug("visiting calendar page", "url", calendarURL)
 
-	err := c.Visit(calendarURL)
-	if err != nil {
+	if err := c.Visit(calendarURL); err != nil {
 		return nil, fmt.Errorf("failed to visit calendar page: %w", err)
 	}
 
@@ -133,6 +104,33 @@ func (s *NissanStadiumScraper) fetchCalendarCandidates(ctx context.Context, toda
 	slog.Debug("calendar scraping completed", "candidates", len(candidates))
 
 	return candidates, nil
+}
+
+func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDay int) (eventCandidate, bool) {
+	if dateStr := row.ChildText("th:nth-child(1)"); dateStr != "" {
+		var date int
+		if _, err := fmt.Sscanf(dateStr, "%d", &date); err == nil {
+			*currentDate = date
+		}
+	}
+
+	if *currentDate != targetDay {
+		return eventCandidate{}, false
+	}
+
+	title := strings.TrimSpace(row.ChildText("td:nth-child(3) > a:nth-child(2)"))
+	href := row.ChildAttr("td:nth-child(3) > a:nth-child(2)", "href")
+	id := extractEventID(href)
+
+	slog.Debug("processing row", "date", *currentDate, "title", title, "href", href, "id", id)
+
+	if id == "" || title == "" {
+		return eventCandidate{}, false
+	}
+
+	slog.Debug("found event candidate", "id", id, "title", title, "date", *currentDate)
+
+	return eventCandidate{id: id, title: title, date: *currentDate}, true
 }
 
 func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates []eventCandidate, today time.Time) ([]event.Event, error) {
@@ -222,6 +220,7 @@ func (s *NissanStadiumScraper) fetchEventDetail(ctx context.Context, candidate e
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
+		slog.Error("error during event detail scraping", "status", r.StatusCode, "error", err)
 	})
 
 	var visitErr error
