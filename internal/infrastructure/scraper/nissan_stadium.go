@@ -30,7 +30,6 @@ func NewNissanStadiumScraper() ports.EventFetcher {
 type eventCandidate struct {
 	url   string
 	title string
-	date  int
 }
 
 var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
@@ -132,9 +131,9 @@ func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentD
 		return eventCandidate{}, false
 	}
 
-	slog.Debug("found event candidate", "id", id, "title", title, "date", *currentDate)
+	slog.Debug("found event candidate", "id", id, "title", title)
 
-	return eventCandidate{title: title, date: *currentDate, url: detailURL}, true
+	return eventCandidate{title: title, url: detailURL}, true
 }
 
 func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates []eventCandidate, today time.Time) ([]event.Event, error) {
