@@ -157,6 +157,17 @@ After fixing issues, run:
 task ci-check
 ```
 
+## When modifying scrapers
+
+When modifying files under `internal/infrastructure/scraper/`:
+
+```
+task run-local
+```
+
+This runs actual HTTP requests to scraping targets.
+DO NOT run this command repeatedly in a short period.
+
 ---
 
 # Terraform Changes

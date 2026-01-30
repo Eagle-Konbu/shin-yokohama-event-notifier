@@ -67,6 +67,16 @@ tasks:
     cmds:
       - rm -f bootstrap lambda.zip
 
+  run-local:
+    desc: Run locally and preview events (no Discord notification)
+    cmds:
+      - go run ./cmd/local/
+
+  run-local-send:
+    desc: Run locally and send notification to Discord (requires DISCORD_WEBHOOK_URL)
+    cmds:
+      - go run ./cmd/local/ --send
+
   init:
     desc: Initialize Terraform
     dir: terraform
