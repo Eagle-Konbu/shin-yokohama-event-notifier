@@ -36,6 +36,8 @@ func main() {
 		venueMap[v.ID] = v
 	}
 
+	var hasError bool
+
 	for _, fetcher := range fetchers {
 		venue := venueMap[fetcher.VenueID()]
 
@@ -48,6 +50,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("[%s]\n", venue.DisplayName)
 			fmt.Printf("  error: %v\n\n", err)
+			hasError = true
 			continue
 		}
 
@@ -69,6 +72,10 @@ func main() {
 		}
 
 		fmt.Println("Notification sent to Discord")
+	}
+
+	if hasError {
+		os.Exit(1)
 	}
 }
 
