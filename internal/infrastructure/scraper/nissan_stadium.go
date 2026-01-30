@@ -262,7 +262,7 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 	hasStartTime := fields.time != ""
 	eventTime := fields.time
 	if eventTime == "" {
-		eventTime = "00:00"
+		eventTime = "0時"
 	}
 
 	parsedDate, err := parseJapaneseDateTime(fields.date, eventTime, today)
@@ -294,20 +294,14 @@ func parseJapaneseDateTime(dateStr, timeStr string, today time.Time) (time.Time,
 		dateStr = fmt.Sprintf("%d年%d月%d日", today.Year(), today.Month(), today.Day())
 	}
 
-	dateStr = strings.ReplaceAll(dateStr, "年", "-")
-	dateStr = strings.ReplaceAll(dateStr, "月", "-")
-	dateStr = strings.ReplaceAll(dateStr, "日", "")
-	dateStr = strings.TrimSpace(dateStr)
-
 	datetimeStr := dateStr + " " + timeStr
 
 	jst := time.FixedZone("JST", 9*60*60)
 
 	layouts := []string{
-		"2006-1-2 15:04",
-		"2006-01-02 15:04",
-		"2006-1-2 15:4",
-		"2006-01-02 15:4",
+		"2006年1月2日 15時04分",
+		"2006年1月2日 15時4分",
+		"2006年1月2日 15時",
 	}
 
 	var parsedTime time.Time

@@ -39,7 +39,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	currentDay := today.Day()
 
 	calendarHTML := createMockCalendarHTML(currentDay, "サッカー練習試合", "691aa8fccc37e", "日産スタジアム")
-	detailHTML := createMockDetailHTML("サッカー練習試合", fmt.Sprintf("2026年1月%d日", currentDay), "14:00", "日産スタジアム")
+	detailHTML := createMockDetailHTML("サッカー練習試合", fmt.Sprintf("2026年1月%d日", currentDay), "14時", "日産スタジアム")
 
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
@@ -87,8 +87,8 @@ func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
 		</body></html>
 	`, currentDay)
 
-	detailHTML1 := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "10:00", "日産スタジアム")
-	detailHTML2 := createMockDetailHTML("イベント2", fmt.Sprintf("2026年1月%d日", currentDay), "15:00", "日産スタジアム")
+	detailHTML1 := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "10時", "日産スタジアム")
+	detailHTML2 := createMockDetailHTML("イベント2", fmt.Sprintf("2026年1月%d日", currentDay), "15時", "日産スタジアム")
 
 	server := createMockServerMultiDetail(calendarHTML, map[string]string{
 		"event1": detailHTML1,
@@ -114,7 +114,7 @@ func TestNissanStadiumScraper_FetchEvents_NoEventsToday(t *testing.T) {
 	}
 
 	calendarHTML := createMockCalendarHTML(otherDay, "サッカー練習試合", "691aa8fccc37e", "日産スタジアム")
-	detailHTML := createMockDetailHTML("サッカー練習試合", "2026年1月15日", "14:00", "日産スタジアム")
+	detailHTML := createMockDetailHTML("サッカー練習試合", "2026年1月15日", "14時", "日産スタジアム")
 
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
@@ -162,7 +162,7 @@ func TestNissanStadiumScraper_FetchEvents_FiltersByVenue(t *testing.T) {
 		</body></html>
 	`, currentDay)
 
-	detailHTML := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "14:00", "日産スタジアム")
+	detailHTML := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "14時", "日産スタジアム")
 
 	server := createMockServerMultiDetail(calendarHTML, map[string]string{
 		"event1": detailHTML,
@@ -197,7 +197,7 @@ func TestNissanStadiumScraper_FetchEvents_CalendarFetchError(t *testing.T) {
 
 func TestNissanStadiumScraper_FetchEvents_ContextCancellation(t *testing.T) {
 	calendarHTML := createMockCalendarHTML(28, "イベント", "event1", "日産スタジアム")
-	detailHTML := createMockDetailHTML("イベント", "2026年1月28日", "14:00", "日産スタジアム")
+	detailHTML := createMockDetailHTML("イベント", "2026年1月28日", "14時", "日産スタジアム")
 
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
@@ -264,7 +264,7 @@ func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
 		</body></html>
 	`, currentDay)
 
-	detailHTML := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "14:00", "日産スタジアム")
+	detailHTML := createMockDetailHTML("イベント1", fmt.Sprintf("2026年1月%d日", currentDay), "14時", "日産スタジアム")
 
 	server := createMockServerMultiDetail(calendarHTML, map[string]string{
 		"event1": detailHTML,
@@ -333,7 +333,7 @@ func TestParseJapaneseDateTime(t *testing.T) {
 		{
 			name:        "valid date and time",
 			dateStr:     "2026年1月28日",
-			timeStr:     "14:00",
+			timeStr:     "14時",
 			expectedDay: 28,
 			expectedHr:  14,
 			expectedMin: 0,
@@ -342,16 +342,25 @@ func TestParseJapaneseDateTime(t *testing.T) {
 		{
 			name:        "valid date with single digit month and day",
 			dateStr:     "2026年1月5日",
-			timeStr:     "09:30",
+			timeStr:     "9時30分",
 			expectedDay: 5,
 			expectedHr:  9,
 			expectedMin: 30,
 			wantErr:     false,
 		},
 		{
+			name:        "time without minutes",
+			dateStr:     "2026年1月28日",
+			timeStr:     "14時",
+			expectedDay: 28,
+			expectedHr:  14,
+			expectedMin: 0,
+			wantErr:     false,
+		},
+		{
 			name:        "empty time defaults to 00:00",
 			dateStr:     "2026年1月28日",
-			timeStr:     "00:00",
+			timeStr:     "0時",
 			expectedDay: 28,
 			expectedHr:  0,
 			expectedMin: 0,
@@ -360,7 +369,7 @@ func TestParseJapaneseDateTime(t *testing.T) {
 		{
 			name:        "empty date uses today",
 			dateStr:     "",
-			timeStr:     "14:00",
+			timeStr:     "14時",
 			expectedDay: today.Day(),
 			expectedHr:  14,
 			expectedMin: 0,
