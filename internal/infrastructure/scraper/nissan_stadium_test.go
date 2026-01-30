@@ -108,10 +108,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
 func TestNissanStadiumScraper_FetchEvents_NoEventsToday(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
-	otherDay := (today.Day() + 1) % 31
-	if otherDay == 0 {
-		otherDay = 1
-	}
+	otherDay := today.AddDate(0, 0, 1).Day()
 
 	calendarHTML := createMockCalendarHTML(otherDay, "サッカー練習試合", "691aa8fccc37e", "日産スタジアム")
 	detailHTML := createMockDetailHTML("サッカー練習試合", "2026年1月15日", "14時", "日産スタジアム")
@@ -281,6 +278,149 @@ func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
 	assert.Equal(t, "イベント1", events[0].Title)
 }
 
+func TestNissanStadiumScraper_FetchEvents_EmptyIDOrTitle(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	calendarHTML := fmt.Sprintf(`
+		<html><body>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=">イベント1</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event2"></a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		</body></html>
+	`, currentDay)
+
+	server := createMockServer(calendarHTML, "")
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	require.NoError(t, err)
+	assert.Empty(t, events)
+}
+
+func TestNissanStadiumScraper_FetchEvents_TitleFallback(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	calendarHTML := createMockCalendarHTML(currentDay, "カレンダータイトル", "event1", "日産スタジアム")
+	detailHTML := createMockDetailHTMLWithoutTitle(fmt.Sprintf("2026年1月%d日", currentDay), "14時", "日産スタジアム")
+
+	server := createMockServer(calendarHTML, detailHTML)
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "カレンダータイトル", events[0].Title)
+}
+
+func TestNissanStadiumScraper_FetchEvents_AllDetailsFailed(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	calendarHTML := fmt.Sprintf(`
+		<html><body>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>%d</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event1">イベント1</a></td>
+						</tr>
+						<tr>
+							<th></th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=event2">イベント2</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		</body></html>
+	`, currentDay)
+
+	detailHTML1 := createMockDetailHTMLWithInvalidDate("イベント1", "日産スタジアム")
+	detailHTML2 := createMockDetailHTMLWithInvalidDate("イベント2", "日産スタジアム")
+
+	server := createMockServerMultiDetail(calendarHTML, map[string]string{
+		"event1": detailHTML1,
+		"event2": detailHTML2,
+	})
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	require.Error(t, err)
+	assert.Nil(t, events)
+	assert.Contains(t, err.Error(), "failed to fetch event details")
+}
+
+func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	calendarHTML := createMockCalendarHTML(currentDay, "イベント", "event1", "日産スタジアム")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/calendar/") && !strings.Contains(r.URL.Path, "detail") {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			//nolint:errcheck
+			io.WriteString(w, calendarHTML)
+		} else {
+			hj, ok := w.(http.Hijacker)
+			if ok {
+				conn, _, err := hj.Hijack()
+				if err == nil {
+					conn.Close()
+				}
+			}
+		}
+	}))
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	require.Error(t, err)
+	assert.Nil(t, events)
+}
+
 func TestExtractEventID(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -305,6 +445,11 @@ func TestExtractEventID(t *testing.T) {
 		{
 			name:     "empty href",
 			href:     "",
+			expected: "",
+		},
+		{
+			name:     "href without id substring",
+			href:     "other.php?event=abc",
 			expected: "",
 		},
 	}
@@ -375,6 +520,24 @@ func TestParseJapaneseDateTime(t *testing.T) {
 			expectedMin: 0,
 			wantErr:     false,
 		},
+		{
+			name:        "invalid date format",
+			dateStr:     "invalid date",
+			timeStr:     "14時",
+			expectedDay: 0,
+			expectedHr:  0,
+			expectedMin: 0,
+			wantErr:     true,
+		},
+		{
+			name:        "invalid time format",
+			dateStr:     "2026年1月28日",
+			timeStr:     "invalid",
+			expectedDay: 0,
+			expectedHr:  0,
+			expectedMin: 0,
+			wantErr:     true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -434,6 +597,41 @@ func createMockDetailHTML(title, date, time, venue string) string {
 		</body>
 		</html>
 	`, title, date, timeRow, venue)
+}
+
+func createMockDetailHTMLWithoutTitle(date, time, venue string) string {
+	timeRow := ""
+	if time != "" {
+		timeRow = fmt.Sprintf("<tr><th>開始</th><td>%s</td></tr>", time)
+	}
+
+	return fmt.Sprintf(`
+		<html>
+		<body>
+		<table>
+			<tr><th>行事名</th><td></td></tr>
+			<tr><th>期日</th><td>%s</td></tr>
+			%s
+			<tr><th>対象施設</th><td>%s</td></tr>
+		</table>
+		</body>
+		</html>
+	`, date, timeRow, venue)
+}
+
+func createMockDetailHTMLWithInvalidDate(title, venue string) string {
+	return fmt.Sprintf(`
+		<html>
+		<body>
+		<table>
+			<tr><th>行事名</th><td>%s</td></tr>
+			<tr><th>期日</th><td>invalid date</td></tr>
+			<tr><th>開始</th><td>invalid time</td></tr>
+			<tr><th>対象施設</th><td>%s</td></tr>
+		</table>
+		</body>
+		</html>
+	`, title, venue)
 }
 
 func createMockServer(calendarHTML, detailHTML string) *httptest.Server {
