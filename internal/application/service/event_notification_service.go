@@ -128,7 +128,12 @@ func (s *EventNotificationService) formatVenueEvents(events []event.Event) strin
 
 	var lines []string
 	for _, e := range events {
-		line := fmt.Sprintf("・**%s〜** %s", e.Date.Format("15:04"), e.Title)
+		var line string
+		if e.HasStartTime {
+			line = fmt.Sprintf("・**%s〜** %s", e.Date.Format("15:04"), e.Title)
+		} else {
+			line = fmt.Sprintf("・%s", e.Title)
+		}
 		lines = append(lines, line)
 	}
 

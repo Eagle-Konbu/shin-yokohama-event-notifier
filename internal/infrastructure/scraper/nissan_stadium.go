@@ -260,6 +260,7 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 		title = candidate.title
 	}
 
+	hasStartTime := fields.time != ""
 	eventTime := fields.time
 	if eventTime == "" {
 		eventTime = "00:00"
@@ -270,7 +271,7 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 		return event.Event{}, fmt.Errorf("failed to parse date/time for event %s: %w", candidate.url, err)
 	}
 
-	return event.Event{Title: title, Date: parsedDate}, nil
+	return event.Event{Title: title, Date: parsedDate, HasStartTime: hasStartTime}, nil
 }
 
 func (s *NissanStadiumScraper) VenueID() event.VenueID {

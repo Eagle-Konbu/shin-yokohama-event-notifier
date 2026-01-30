@@ -55,6 +55,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	assert.Equal(t, currentDay, events[0].Date.Day())
 	assert.Equal(t, 14, events[0].Date.Hour())
 	assert.Equal(t, 0, events[0].Date.Minute())
+	assert.True(t, events[0].HasStartTime)
 }
 
 func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
@@ -231,6 +232,7 @@ func TestNissanStadiumScraper_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 	require.Len(t, events, 1)
 	assert.Equal(t, 0, events[0].Date.Hour())
 	assert.Equal(t, 0, events[0].Date.Minute())
+	assert.False(t, events[0].HasStartTime)
 }
 
 func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
