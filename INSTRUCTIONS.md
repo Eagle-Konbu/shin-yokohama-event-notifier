@@ -196,6 +196,20 @@ The following checks run automatically on PRs:
 
 ---
 
+# GitHub Operations
+
+When interacting with GitHub (creating issues, pull requests, checking workflow status, etc.), use GitHub CLI (`gh`).
+
+Examples:
+- `gh pr create`
+- `gh pr view`
+- `gh issue create`
+- `gh run list`
+
+Do not use the GitHub web UI or API directly when `gh` commands are available.
+
+---
+
 # Instructions
 
 - Make the smallest reasonable change.
