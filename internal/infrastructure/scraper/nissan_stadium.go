@@ -40,7 +40,7 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 
 	slog.Info("fetching nissan stadium events", "date", today.Format("2006-01-02"))
 
-	candidates, err := s.retrieveEventCandidates(ctx, today)
+	candidates, err := s.fetchEventCandidates(ctx, today)
 	if err != nil {
 		slog.Error("failed to fetch event candidates", "error", err)
 		return nil, fmt.Errorf("failed to fetch event candidates: %w", err)
@@ -64,7 +64,7 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 	return events, nil
 }
 
-func (s *NissanStadiumScraper) retrieveEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
+func (s *NissanStadiumScraper) fetchEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
 	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
