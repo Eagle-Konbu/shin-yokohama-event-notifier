@@ -52,7 +52,7 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 		return []event.Event{}, nil
 	}
 
-	slog.Info("found event candidates", "count", len(candidates))
+	slog.Info("found event candidates", "candidates", candidates)
 
 	events, err := s.fetchEventDetails(ctx, candidates, today)
 	if err != nil {
