@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 	"sort"
-	"strings"
+	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/briandowns/spinner"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
@@ -31,11 +31,29 @@ func main() {
 	}
 
 	venues := event.NewAllVenues()
-	if err := fetchAllEvents(ctx, fetchers, venues); err != nil {
-		log.Fatalf("Failed to fetch events: %v", err)
+	venueMap := make(map[event.VenueID]*event.Venue)
+	for _, v := range venues {
+		venueMap[v.ID] = v
 	}
 
-	printEvents(venues)
+	for _, fetcher := range fetchers {
+		venue := venueMap[fetcher.VenueID()]
+
+		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s.Suffix = fmt.Sprintf(" Fetching %s...", venue.DisplayName)
+		s.Start()
+		events, err := fetcher.FetchEvents(ctx)
+		s.Stop()
+
+		if err != nil {
+			fmt.Printf("[%s]\n", venue.DisplayName)
+			fmt.Printf("  error: %v\n\n", err)
+			continue
+		}
+
+		venue.Events = events
+		printVenue(venue)
+	}
 
 	if *sendFlag {
 		webhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
@@ -50,57 +68,25 @@ func main() {
 			log.Fatalf("Failed to send notification: %v", err)
 		}
 
-		fmt.Println("\n✅ Notification sent to Discord")
+		fmt.Println("Notification sent to Discord")
 	}
 }
 
-func fetchAllEvents(ctx context.Context, fetchers []ports.EventFetcher, venues []*event.Venue) error {
-	venueMap := make(map[event.VenueID]*event.Venue)
-	for _, v := range venues {
-		venueMap[v.ID] = v
+func printVenue(venue *event.Venue) {
+	fmt.Printf("[%s]\n", venue.DisplayName)
+
+	if len(venue.Events) == 0 {
+		fmt.Println("  (none)")
+		fmt.Println()
+		return
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
-	for _, fetcher := range fetchers {
-		eg.Go(func() error {
-			events, err := fetcher.FetchEvents(ctx)
-			if err != nil {
-				return err
-			}
+	sort.Slice(venue.Events, func(i, j int) bool {
+		return venue.Events[i].Date.Before(venue.Events[j].Date)
+	})
 
-			if venue, ok := venueMap[fetcher.VenueID()]; ok {
-				venue.Events = append(venue.Events, events...)
-			}
-
-			return nil
-		})
+	for _, e := range venue.Events {
+		fmt.Printf("  %s %s\n", e.Date.Format("15:04"), e.Title)
 	}
-
-	return eg.Wait()
-}
-
-func printEvents(venues []*event.Venue) {
-	fmt.Println("========================================")
-	fmt.Println("📅 新横浜 イベント情報")
-	fmt.Println("========================================")
-
-	for _, venue := range venues {
-		fmt.Printf("\n%s %s\n", venue.Emoji, venue.DisplayName)
-		fmt.Println(strings.Repeat("-", 40))
-
-		if len(venue.Events) == 0 {
-			fmt.Println("  本日の予定はありません")
-			continue
-		}
-
-		sort.Slice(venue.Events, func(i, j int) bool {
-			return venue.Events[i].Date.Before(venue.Events[j].Date)
-		})
-
-		for _, e := range venue.Events {
-			fmt.Printf("  %s〜 %s\n", e.Date.Format("15:04"), e.Title)
-		}
-	}
-
 	fmt.Println()
 }
