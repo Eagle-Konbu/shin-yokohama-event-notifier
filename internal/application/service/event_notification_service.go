@@ -123,15 +123,29 @@ func (s *EventNotificationService) formatVenueEvents(events []event.Event) strin
 	}
 
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].Date.Before(events[j].Date)
+		if events[i].StartTime == nil && events[j].StartTime == nil {
+			return false
+		}
+		if events[i].StartTime == nil {
+			return false
+		}
+		if events[j].StartTime == nil {
+			return true
+		}
+		return events[i].StartTime.Before(*events[j].StartTime)
 	})
 
 	var lines []string
 	for _, e := range events {
 		var line string
-		if e.HasStartTime {
-			line = fmt.Sprintf("・**%s〜** %s", e.Date.Format("15:04"), e.Title)
-		} else {
+		switch {
+		case e.OpenTime != nil && e.StartTime != nil:
+			line = fmt.Sprintf("・**%s開場 / %s開始** %s", e.OpenTime.Format("15:04"), e.StartTime.Format("15:04"), e.Title)
+		case e.StartTime != nil:
+			line = fmt.Sprintf("・**%s開始** %s", e.StartTime.Format("15:04"), e.Title)
+		case e.OpenTime != nil:
+			line = fmt.Sprintf("・**%s開場** %s", e.OpenTime.Format("15:04"), e.Title)
+		default:
 			line = fmt.Sprintf("・%s", e.Title)
 		}
 		lines = append(lines, line)
