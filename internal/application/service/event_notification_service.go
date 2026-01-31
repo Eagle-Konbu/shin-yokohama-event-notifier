@@ -124,7 +124,8 @@ func (s *EventNotificationService) formatVenueEvents(events []event.Event) strin
 
 	sort.Slice(events, func(i, j int) bool {
 		if events[i].StartTime == nil && events[j].StartTime == nil {
-			return false
+			// Fall back to a deterministic ordering when both StartTime values are nil.
+			return events[i].Title < events[j].Title
 		}
 		if events[i].StartTime == nil {
 			return false

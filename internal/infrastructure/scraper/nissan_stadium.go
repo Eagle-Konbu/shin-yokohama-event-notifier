@@ -267,7 +267,14 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 	var startTime *time.Time
 	if fields.time != "" {
 		t, err := parseJapaneseTime(fields.time, parsedDate)
-		if err == nil {
+		if err != nil {
+			slog.Error("failed to parse event start time",
+				"time", fields.time,
+				"date", parsedDate,
+				"url", candidate.url,
+				"err", err,
+			)
+		} else {
 			startTime = &t
 		}
 	}
