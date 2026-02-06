@@ -419,6 +419,30 @@ func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
 	assert.Nil(t, events)
 }
 
+func TestNissanStadiumScraper_FetchEvents_InvalidTimeFormat_LogsError(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	// Create an event with an invalid time format that will fail parsing
+	calendarHTML := createMockCalendarHTML(currentDay, "イベント", "event1", "日産スタジアム")
+	detailHTML := createMockDetailHTML("イベント", fmt.Sprintf("2026年1月%d日", currentDay), "invalid time format", "日産スタジアム")
+
+	server := createMockServer(calendarHTML, detailHTML)
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	// The event should still be returned, but without StartTime
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "イベント", events[0].Title)
+	assert.Nil(t, events[0].StartTime, "StartTime should be nil when time parsing fails")
+}
+
 func TestExtractEventID(t *testing.T) {
 	tests := []struct {
 		name     string

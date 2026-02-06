@@ -424,3 +424,42 @@ func TestNotifyTodayEvents_SendError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to send notification")
 	assert.ErrorIs(t, err, expectedErr)
 }
+
+func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+
+	events := []event.Event{
+		{
+			Title:     "イベントC",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+		{
+			Title:     "イベントA",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+		{
+			Title:     "イベントB",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+	}
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyTodayEvents(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, sentNotification)
+
+	arenaField := sentNotification.Fields()[0]
+	// Events should be sorted alphabetically by title when both have nil StartTime
+	assert.Contains(t, arenaField.Value, "・イベントA\n・イベントB\n・イベントC")
+}
