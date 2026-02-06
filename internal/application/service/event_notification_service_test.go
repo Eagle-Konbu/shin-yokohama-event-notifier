@@ -15,6 +15,10 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 )
 
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
+
 type MockNotificationSender struct {
 	mock.Mock
 }
@@ -99,9 +103,9 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 
 	events := []event.Event{
 		{
-			Title:        "テストイベント",
-			Date:         time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			HasStartTime: true,
+			Title:     "テストイベント",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: timePtr(time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local)),
 		},
 	}
 	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -121,7 +125,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 
 	arenaField := sentNotification.Fields()[0]
 	assert.Equal(t, "🏟️ 横浜アリーナ", arenaField.Name)
-	assert.Contains(t, arenaField.Value, "・**18:00〜** テストイベント")
+	assert.Contains(t, arenaField.Value, "・**18:00開始** テストイベント")
 }
 
 func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
@@ -197,14 +201,14 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 
 	events := []event.Event{
 		{
-			Title:        "イベントB",
-			Date:         time.Date(2026, 1, 28, 19, 0, 0, 0, time.Local),
-			HasStartTime: true,
+			Title:     "イベントB",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: timePtr(time.Date(2026, 1, 28, 19, 0, 0, 0, time.Local)),
 		},
 		{
-			Title:        "イベントA",
-			Date:         time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local),
-			HasStartTime: true,
+			Title:     "イベントA",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: timePtr(time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local)),
 		},
 	}
 	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -222,7 +226,7 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 	require.NotNil(t, sentNotification)
 
 	arenaField := sentNotification.Fields()[0]
-	assert.Contains(t, arenaField.Value, "・**18:00〜** イベントA\n・**19:00〜** イベントB")
+	assert.Contains(t, arenaField.Value, "・**18:00開始** イベントA\n・**19:00開始** イベントB")
 }
 
 func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
@@ -230,9 +234,9 @@ func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
 
 	events := []event.Event{
 		{
-			Title:        "時間未定イベント",
-			Date:         time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			HasStartTime: false,
+			Title:     "時間未定イベント",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
 		},
 	}
 	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -251,7 +255,7 @@ func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
 
 	arenaField := sentNotification.Fields()[0]
 	assert.Equal(t, "・時間未定イベント", arenaField.Value)
-	assert.NotContains(t, arenaField.Value, "〜")
+	assert.NotContains(t, arenaField.Value, "開始")
 }
 
 func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
@@ -259,14 +263,14 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 
 	events := []event.Event{
 		{
-			Title:        "時間ありイベント",
-			Date:         time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
-			HasStartTime: true,
+			Title:     "時間ありイベント",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: timePtr(time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local)),
 		},
 		{
-			Title:        "時間なしイベント",
-			Date:         time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			HasStartTime: false,
+			Title:     "時間なしイベント",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
 		},
 	}
 	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
@@ -285,7 +289,64 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 
 	arenaField := sentNotification.Fields()[0]
 	assert.Contains(t, arenaField.Value, "・時間なしイベント")
-	assert.Contains(t, arenaField.Value, "・**14:00〜** 時間ありイベント")
+	assert.Contains(t, arenaField.Value, "・**14:00開始** 時間ありイベント")
+}
+
+func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+
+	events := []event.Event{
+		{
+			Title:    "開場時間のみイベント",
+			Date:     time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			OpenTime: timePtr(time.Date(2026, 1, 28, 17, 0, 0, 0, time.Local)),
+		},
+	}
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyTodayEvents(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, sentNotification)
+
+	arenaField := sentNotification.Fields()[0]
+	assert.Equal(t, "・**17:00開場** 開場時間のみイベント", arenaField.Value)
+}
+
+func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+
+	events := []event.Event{
+		{
+			Title:     "開場開始両方イベント",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			OpenTime:  timePtr(time.Date(2026, 1, 28, 17, 0, 0, 0, time.Local)),
+			StartTime: timePtr(time.Date(2026, 1, 28, 18, 30, 0, 0, time.Local)),
+		},
+	}
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyTodayEvents(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, sentNotification)
+
+	arenaField := sentNotification.Fields()[0]
+	assert.Equal(t, "・**17:00開場 / 18:30開始** 開場開始両方イベント", arenaField.Value)
 }
 
 func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
@@ -362,4 +423,43 @@ func TestNotifyTodayEvents_SendError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to send notification")
 	assert.ErrorIs(t, err, expectedErr)
+}
+
+func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+
+	events := []event.Event{
+		{
+			Title:     "イベントC",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+		{
+			Title:     "イベントA",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+		{
+			Title:     "イベントB",
+			Date:      time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
+			StartTime: nil,
+		},
+	}
+	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyTodayEvents(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, sentNotification)
+
+	arenaField := sentNotification.Fields()[0]
+	// Events should be sorted alphabetically by title when both have nil StartTime
+	assert.Contains(t, arenaField.Value, "・イベントA\n・イベントB\n・イベントC")
 }

@@ -259,18 +259,27 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 		title = candidate.title
 	}
 
-	hasStartTime := fields.time != ""
-	eventTime := fields.time
-	if eventTime == "" {
-		eventTime = "0時"
-	}
-
-	parsedDate, err := parseJapaneseDateTime(fields.date, eventTime, today)
+	parsedDate, err := parseJapaneseDate(fields.date, today)
 	if err != nil {
-		return event.Event{}, fmt.Errorf("failed to parse date/time for event %s: %w", candidate.url, err)
+		return event.Event{}, fmt.Errorf("failed to parse date for event %s: %w", candidate.url, err)
 	}
 
-	return event.Event{Title: title, Date: parsedDate, HasStartTime: hasStartTime}, nil
+	var startTime *time.Time
+	if fields.time != "" {
+		t, err := parseJapaneseTime(fields.time, parsedDate)
+		if err != nil {
+			slog.Error("failed to parse event start time",
+				"time", fields.time,
+				"date", parsedDate,
+				"url", candidate.url,
+				"err", err,
+			)
+		} else {
+			startTime = &t
+		}
+	}
+
+	return event.Event{Title: title, Date: parsedDate, StartTime: startTime}, nil
 }
 
 func (s *NissanStadiumScraper) VenueID() event.VenueID {
@@ -289,35 +298,39 @@ func extractEventID(href string) string {
 	return id
 }
 
-func parseJapaneseDateTime(dateStr, timeStr string, today time.Time) (time.Time, error) {
+func parseJapaneseDate(dateStr string, today time.Time) (time.Time, error) {
 	if dateStr == "" {
 		dateStr = fmt.Sprintf("%d年%d月%d日", today.Year(), today.Month(), today.Day())
 	}
 
-	datetimeStr := dateStr + " " + timeStr
+	jst := time.FixedZone("JST", 9*60*60)
 
+	t, err := time.ParseInLocation("2006年1月2日", dateStr, jst)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse date '%s': %w", dateStr, err)
+	}
+
+	return t, nil
+}
+
+func parseJapaneseTime(timeStr string, baseDate time.Time) (time.Time, error) {
 	jst := time.FixedZone("JST", 9*60*60)
 
 	layouts := []string{
-		"2006年1月2日 15時04分",
-		"2006年1月2日 15時4分",
-		"2006年1月2日 15時",
+		"15時04分",
+		"15時4分",
+		"15時",
 	}
 
-	var parsedTime time.Time
-	var lastErr error
 	for _, layout := range layouts {
-		t, err := time.ParseInLocation(layout, datetimeStr, jst)
+		t, err := time.ParseInLocation(layout, timeStr, jst)
 		if err == nil {
-			parsedTime = t
-			break
+			return time.Date(
+				baseDate.Year(), baseDate.Month(), baseDate.Day(),
+				t.Hour(), t.Minute(), 0, 0, jst,
+			), nil
 		}
-		lastErr = err
 	}
 
-	if parsedTime.IsZero() {
-		return time.Time{}, fmt.Errorf("failed to parse datetime '%s': %w", datetimeStr, lastErr)
-	}
-
-	return parsedTime, nil
+	return time.Time{}, fmt.Errorf("failed to parse time '%s'", timeStr)
 }

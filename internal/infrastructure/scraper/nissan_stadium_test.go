@@ -53,9 +53,9 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	require.Len(t, events, 1)
 	assert.Equal(t, "サッカー練習試合", events[0].Title)
 	assert.Equal(t, currentDay, events[0].Date.Day())
-	assert.Equal(t, 14, events[0].Date.Hour())
-	assert.Equal(t, 0, events[0].Date.Minute())
-	assert.True(t, events[0].HasStartTime)
+	require.NotNil(t, events[0].StartTime)
+	assert.Equal(t, 14, events[0].StartTime.Hour())
+	assert.Equal(t, 0, events[0].StartTime.Minute())
 }
 
 func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
@@ -227,9 +227,7 @@ func TestNissanStadiumScraper_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	assert.Equal(t, 0, events[0].Date.Hour())
-	assert.Equal(t, 0, events[0].Date.Minute())
-	assert.False(t, events[0].HasStartTime)
+	assert.Nil(t, events[0].StartTime)
 }
 
 func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
@@ -421,6 +419,30 @@ func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
 	assert.Nil(t, events)
 }
 
+func TestNissanStadiumScraper_FetchEvents_InvalidTimeFormat_LogsError(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+	currentDay := today.Day()
+
+	// Create an event with an invalid time format that will fail parsing
+	calendarHTML := createMockCalendarHTML(currentDay, "イベント", "event1", "日産スタジアム")
+	detailHTML := createMockDetailHTML("イベント", fmt.Sprintf("2026年1月%d日", currentDay), "invalid time format", "日産スタジアム")
+
+	server := createMockServer(calendarHTML, detailHTML)
+	defer server.Close()
+
+	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	// The event should still be returned, but without StartTime
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "イベント", events[0].Title)
+	assert.Nil(t, events[0].StartTime, "StartTime should be nil when time parsing fails")
+}
+
 func TestExtractEventID(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -458,100 +480,6 @@ func TestExtractEventID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := extractEventID(tt.href)
 			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestParseJapaneseDateTime(t *testing.T) {
-	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
-
-	tests := []struct {
-		name        string
-		dateStr     string
-		timeStr     string
-		expectedDay int
-		expectedHr  int
-		expectedMin int
-		wantErr     bool
-	}{
-		{
-			name:        "valid date and time",
-			dateStr:     "2026年1月28日",
-			timeStr:     "14時",
-			expectedDay: 28,
-			expectedHr:  14,
-			expectedMin: 0,
-			wantErr:     false,
-		},
-		{
-			name:        "valid date with single digit month and day",
-			dateStr:     "2026年1月5日",
-			timeStr:     "9時30分",
-			expectedDay: 5,
-			expectedHr:  9,
-			expectedMin: 30,
-			wantErr:     false,
-		},
-		{
-			name:        "time without minutes",
-			dateStr:     "2026年1月28日",
-			timeStr:     "14時",
-			expectedDay: 28,
-			expectedHr:  14,
-			expectedMin: 0,
-			wantErr:     false,
-		},
-		{
-			name:        "empty time defaults to 00:00",
-			dateStr:     "2026年1月28日",
-			timeStr:     "0時",
-			expectedDay: 28,
-			expectedHr:  0,
-			expectedMin: 0,
-			wantErr:     false,
-		},
-		{
-			name:        "empty date uses today",
-			dateStr:     "",
-			timeStr:     "14時",
-			expectedDay: today.Day(),
-			expectedHr:  14,
-			expectedMin: 0,
-			wantErr:     false,
-		},
-		{
-			name:        "invalid date format",
-			dateStr:     "invalid date",
-			timeStr:     "14時",
-			expectedDay: 0,
-			expectedHr:  0,
-			expectedMin: 0,
-			wantErr:     true,
-		},
-		{
-			name:        "invalid time format",
-			dateStr:     "2026年1月28日",
-			timeStr:     "invalid",
-			expectedDay: 0,
-			expectedHr:  0,
-			expectedMin: 0,
-			wantErr:     true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseJapaneseDateTime(tt.dateStr, tt.timeStr, today)
-
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.expectedDay, result.Day())
-				assert.Equal(t, tt.expectedHr, result.Hour())
-				assert.Equal(t, tt.expectedMin, result.Minute())
-			}
 		})
 	}
 }
