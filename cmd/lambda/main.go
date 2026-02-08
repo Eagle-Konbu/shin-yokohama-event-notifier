@@ -10,7 +10,7 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/config"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/discord"
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/scraper"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/fetcher"
 
 	lambdaHandler "github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/lambda"
 )
@@ -23,9 +23,9 @@ func main() {
 	}
 
 	fetchers := []ports.EventFetcher{
-		scraper.NewYokohamaArenaScraper(),
-		scraper.NewNissanStadiumScraper(),
-		scraper.NewSkateCenterScraper(),
+		fetcher.NewYokohamaArenaFetcher(),
+		fetcher.NewNissanStadiumFetcher(),
+		fetcher.NewSkateCenterFetcher(),
 	}
 
 	discordSender := discord.NewWebhookAdapter(cfg.DiscordWebhookURL)

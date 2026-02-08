@@ -13,7 +13,7 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/discord"
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/scraper"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/fetcher"
 )
 
 func main() {
@@ -27,9 +27,9 @@ func main() {
 	ctx := context.Background()
 
 	fetchers := []ports.EventFetcher{
-		scraper.NewYokohamaArenaScraper(),
-		scraper.NewNissanStadiumScraper(),
-		scraper.NewSkateCenterScraper(),
+		fetcher.NewYokohamaArenaFetcher(),
+		fetcher.NewNissanStadiumFetcher(),
+		fetcher.NewSkateCenterFetcher(),
 	}
 
 	venues := event.NewAllVenues()
