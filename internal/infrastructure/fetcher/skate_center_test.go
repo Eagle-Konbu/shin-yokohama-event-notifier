@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 )
 
-func TestNewSkateCenterScraper(t *testing.T) {
-	scraper := NewSkateCenterScraper()
+func TestNewSkateCenterFetcher(t *testing.T) {
+	scraper := NewSkateCenterFetcher()
 
 	require.NotNil(t, scraper)
 }
 
-func TestSkateCenterScraper_FetchEvents_NotImplemented(t *testing.T) {
-	scraper := NewSkateCenterScraper()
+func TestSkateCenterFetcher_FetchEvents_NotImplemented(t *testing.T) {
+	scraper := NewSkateCenterFetcher()
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -27,8 +27,8 @@ func TestSkateCenterScraper_FetchEvents_NotImplemented(t *testing.T) {
 	assert.Nil(t, events)
 }
 
-func TestSkateCenterScraper_VenueID(t *testing.T) {
-	scraper := NewSkateCenterScraper()
+func TestSkateCenterFetcher_VenueID(t *testing.T) {
+	scraper := NewSkateCenterFetcher()
 
 	vid := scraper.VenueID()
 

@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -14,12 +14,12 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 )
 
-type YokohamaArenaScraper struct {
+type YokohamaArenaFetcher struct {
 	baseURL string
 }
 
-func NewYokohamaArenaScraper() ports.EventFetcher {
-	return &YokohamaArenaScraper{
+func NewYokohamaArenaFetcher() ports.EventFetcher {
+	return &YokohamaArenaFetcher{
 		baseURL: "https://www.yokohama-arena.co.jp",
 	}
 }
@@ -32,7 +32,7 @@ type yokohamaArenaEvent struct {
 	EvStart []string `json:"ev_start"`
 }
 
-func (s *YokohamaArenaScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -61,7 +61,7 @@ func (s *YokohamaArenaScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 	return events, nil
 }
 
-func (s *YokohamaArenaScraper) fetchJSON(ctx context.Context, apiURL string) ([]yokohamaArenaEvent, error) {
+func (s *YokohamaArenaFetcher) fetchJSON(ctx context.Context, apiURL string) ([]yokohamaArenaEvent, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -86,7 +86,7 @@ func (s *YokohamaArenaScraper) fetchJSON(ctx context.Context, apiURL string) ([]
 	return rawEvents, nil
 }
 
-func (s *YokohamaArenaScraper) expandEvents(raw yokohamaArenaEvent, today time.Time) []event.Event {
+func (s *YokohamaArenaFetcher) expandEvents(raw yokohamaArenaEvent, today time.Time) []event.Event {
 	jst := time.FixedZone("JST", 9*60*60)
 	date := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, jst)
 
@@ -153,6 +153,6 @@ func stripCircledNumberPrefix(s string) string {
 	return s
 }
 
-func (s *YokohamaArenaScraper) VenueID() event.VenueID {
+func (s *YokohamaArenaFetcher) VenueID() event.VenueID {
 	return event.VenueIDYokohamaArena
 }

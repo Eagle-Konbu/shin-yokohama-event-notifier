@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -9,17 +9,17 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 )
 
-type SkateCenterScraper struct{}
+type SkateCenterFetcher struct{}
 
-func NewSkateCenterScraper() ports.EventFetcher {
-	return &SkateCenterScraper{}
+func NewSkateCenterFetcher() ports.EventFetcher {
+	return &SkateCenterFetcher{}
 }
 
-func (s *SkateCenterScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *SkateCenterFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	time.Sleep(time.Second * 2)
 	return nil, errors.New("not implemented")
 }
 
-func (s *SkateCenterScraper) VenueID() event.VenueID {
+func (s *SkateCenterFetcher) VenueID() event.VenueID {
 	return event.VenueIDSkateCenter
 }

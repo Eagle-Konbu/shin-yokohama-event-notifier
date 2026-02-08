@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -16,24 +16,24 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 )
 
-func TestNewNissanStadiumScraper(t *testing.T) {
-	scraper := NewNissanStadiumScraper()
+func TestNewNissanStadiumFetcher(t *testing.T) {
+	scraper := NewNissanStadiumFetcher()
 
 	require.NotNil(t, scraper)
-	nissanScraper, ok := scraper.(*NissanStadiumScraper)
+	nissanScraper, ok := scraper.(*NissanStadiumFetcher)
 	require.True(t, ok)
 	assert.Equal(t, "https://www.nissan-stadium.jp", nissanScraper.baseURL)
 }
 
-func TestNissanStadiumScraper_VenueID(t *testing.T) {
-	scraper := NewNissanStadiumScraper()
+func TestNissanStadiumFetcher_VenueID(t *testing.T) {
+	scraper := NewNissanStadiumFetcher()
 
 	vid := scraper.VenueID()
 
 	assert.Equal(t, event.VenueIDNissanStadium, vid)
 }
 
-func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_Success_SingleEvent(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -44,7 +44,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -58,7 +58,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_SingleEvent(t *testing.T) {
 	assert.Equal(t, 0, events[0].StartTime.Minute())
 }
 
-func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_Success_MultipleEvents(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -96,7 +96,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
 	})
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -105,7 +105,7 @@ func TestNissanStadiumScraper_FetchEvents_Success_MultipleEvents(t *testing.T) {
 	require.Len(t, events, 2)
 }
 
-func TestNissanStadiumScraper_FetchEvents_NoEventsToday(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	otherDay := today.AddDate(0, 0, 1).Day()
@@ -116,7 +116,7 @@ func TestNissanStadiumScraper_FetchEvents_NoEventsToday(t *testing.T) {
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -125,7 +125,7 @@ func TestNissanStadiumScraper_FetchEvents_NoEventsToday(t *testing.T) {
 	assert.Empty(t, events)
 }
 
-func TestNissanStadiumScraper_FetchEvents_FiltersByVenue(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_FiltersByVenue(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -166,7 +166,7 @@ func TestNissanStadiumScraper_FetchEvents_FiltersByVenue(t *testing.T) {
 	})
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -176,13 +176,13 @@ func TestNissanStadiumScraper_FetchEvents_FiltersByVenue(t *testing.T) {
 	assert.Equal(t, "イベント1", events[0].Title)
 }
 
-func TestNissanStadiumScraper_FetchEvents_CalendarFetchError(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_CalendarFetchError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -192,14 +192,14 @@ func TestNissanStadiumScraper_FetchEvents_CalendarFetchError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to fetch event candidates")
 }
 
-func TestNissanStadiumScraper_FetchEvents_ContextCancellation(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	calendarHTML := createMockCalendarHTML(28, "イベント", "event1", "日産スタジアム")
 	detailHTML := createMockDetailHTML("イベント", "2026年1月28日", "14時", "日産スタジアム")
 
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -209,7 +209,7 @@ func TestNissanStadiumScraper_FetchEvents_ContextCancellation(t *testing.T) {
 	assert.Nil(t, events)
 }
 
-func TestNissanStadiumScraper_FetchEvents_MissingTime_DefaultsToZero(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_MissingTime_DefaultsToZero(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -220,7 +220,7 @@ func TestNissanStadiumScraper_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -230,7 +230,7 @@ func TestNissanStadiumScraper_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 	assert.Nil(t, events[0].StartTime)
 }
 
-func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_PartialFailure(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -266,7 +266,7 @@ func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
 	})
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -276,7 +276,7 @@ func TestNissanStadiumScraper_FetchEvents_PartialFailure(t *testing.T) {
 	assert.Equal(t, "イベント1", events[0].Title)
 }
 
-func TestNissanStadiumScraper_FetchEvents_EmptyIDOrTitle(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_EmptyIDOrTitle(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -308,7 +308,7 @@ func TestNissanStadiumScraper_FetchEvents_EmptyIDOrTitle(t *testing.T) {
 	server := createMockServer(calendarHTML, "")
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -317,7 +317,7 @@ func TestNissanStadiumScraper_FetchEvents_EmptyIDOrTitle(t *testing.T) {
 	assert.Empty(t, events)
 }
 
-func TestNissanStadiumScraper_FetchEvents_TitleFallback(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_TitleFallback(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -328,7 +328,7 @@ func TestNissanStadiumScraper_FetchEvents_TitleFallback(t *testing.T) {
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -338,7 +338,7 @@ func TestNissanStadiumScraper_FetchEvents_TitleFallback(t *testing.T) {
 	assert.Equal(t, "カレンダータイトル", events[0].Title)
 }
 
-func TestNissanStadiumScraper_FetchEvents_AllDetailsFailed(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_AllDetailsFailed(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -376,7 +376,7 @@ func TestNissanStadiumScraper_FetchEvents_AllDetailsFailed(t *testing.T) {
 	})
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -386,7 +386,7 @@ func TestNissanStadiumScraper_FetchEvents_AllDetailsFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to fetch event details")
 }
 
-func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_InvalidURL(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -410,7 +410,7 @@ func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
 	}))
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)
@@ -419,7 +419,7 @@ func TestNissanStadiumScraper_FetchEvents_InvalidURL(t *testing.T) {
 	assert.Nil(t, events)
 }
 
-func TestNissanStadiumScraper_FetchEvents_InvalidTimeFormat_LogsError(t *testing.T) {
+func TestNissanStadiumFetcher_FetchEvents_InvalidTimeFormat_LogsError(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	currentDay := today.Day()
@@ -431,7 +431,7 @@ func TestNissanStadiumScraper_FetchEvents_InvalidTimeFormat_LogsError(t *testing
 	server := createMockServer(calendarHTML, detailHTML)
 	defer server.Close()
 
-	scraper := &NissanStadiumScraper{baseURL: server.URL}
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
 	events, err := scraper.FetchEvents(ctx)

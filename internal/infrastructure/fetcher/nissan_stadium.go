@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -17,12 +17,12 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
 )
 
-type NissanStadiumScraper struct {
+type NissanStadiumFetcher struct {
 	baseURL string
 }
 
-func NewNissanStadiumScraper() ports.EventFetcher {
-	return &NissanStadiumScraper{
+func NewNissanStadiumFetcher() ports.EventFetcher {
+	return &NissanStadiumFetcher{
 		baseURL: "https://www.nissan-stadium.jp",
 	}
 }
@@ -34,7 +34,7 @@ type eventCandidate struct {
 
 var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
 
-func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 
@@ -64,7 +64,7 @@ func (s *NissanStadiumScraper) FetchEvents(ctx context.Context) ([]event.Event, 
 	return events, nil
 }
 
-func (s *NissanStadiumScraper) fetchEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
+func (s *NissanStadiumFetcher) fetchEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
 	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
@@ -108,7 +108,7 @@ func (s *NissanStadiumScraper) fetchEventCandidates(ctx context.Context, today t
 	return candidates, nil
 }
 
-func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDay int) (eventCandidate, bool) {
+func (s *NissanStadiumFetcher) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDay int) (eventCandidate, bool) {
 	if dateStr := row.ChildText("th:nth-child(1)"); dateStr != "" {
 		var date int
 		if _, err := fmt.Sscanf(dateStr, "%d", &date); err == nil {
@@ -136,7 +136,7 @@ func (s *NissanStadiumScraper) parseCalendarRow(row *colly.HTMLElement, currentD
 	return eventCandidate{title: title, url: detailURL}, true
 }
 
-func (s *NissanStadiumScraper) fetchEventDetails(ctx context.Context, candidates []eventCandidate, today time.Time) ([]event.Event, error) {
+func (s *NissanStadiumFetcher) fetchEventDetails(ctx context.Context, candidates []eventCandidate, today time.Time) ([]event.Event, error) {
 	slog.Debug("fetching event details", "candidates", len(candidates))
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -196,7 +196,7 @@ type eventDetailFields struct {
 	venue string
 }
 
-func (s *NissanStadiumScraper) fetchEventDetail(ctx context.Context, candidate eventCandidate, today time.Time) (event.Event, error) {
+func (s *NissanStadiumFetcher) fetchEventDetail(ctx context.Context, candidate eventCandidate, today time.Time) (event.Event, error) {
 	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
@@ -233,7 +233,7 @@ func (s *NissanStadiumScraper) fetchEventDetail(ctx context.Context, candidate e
 	return s.buildEventFromFields(fields, candidate, today)
 }
 
-func (s *NissanStadiumScraper) parseDetailTableRow(row *colly.HTMLElement, fields *eventDetailFields) {
+func (s *NissanStadiumFetcher) parseDetailTableRow(row *colly.HTMLElement, fields *eventDetailFields) {
 	th := strings.TrimSpace(row.ChildText("th"))
 	td := strings.TrimSpace(row.ChildText("td"))
 
@@ -249,7 +249,7 @@ func (s *NissanStadiumScraper) parseDetailTableRow(row *colly.HTMLElement, field
 	}
 }
 
-func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, candidate eventCandidate, today time.Time) (event.Event, error) {
+func (s *NissanStadiumFetcher) buildEventFromFields(fields eventDetailFields, candidate eventCandidate, today time.Time) (event.Event, error) {
 	if !strings.Contains(fields.venue, "日産スタジアム") {
 		return event.Event{}, errNotForNissanStadium
 	}
@@ -282,7 +282,7 @@ func (s *NissanStadiumScraper) buildEventFromFields(fields eventDetailFields, ca
 	return event.Event{Title: title, Date: parsedDate, StartTime: startTime}, nil
 }
 
-func (s *NissanStadiumScraper) VenueID() event.VenueID {
+func (s *NissanStadiumFetcher) VenueID() event.VenueID {
 	return event.VenueIDNissanStadium
 }
 

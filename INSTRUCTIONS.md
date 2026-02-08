@@ -157,9 +157,9 @@ After fixing issues, run:
 task ci-check
 ```
 
-## When modifying scrapers
+## When modifying fetchers
 
-When modifying files under `internal/infrastructure/scraper/`:
+When modifying files under `internal/infrastructure/fetcher/`:
 
 ```
 task run-local

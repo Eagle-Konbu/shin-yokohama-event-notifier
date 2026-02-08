@@ -1,4 +1,4 @@
-package scraper
+package fetcher
 
 import (
 	"context"
@@ -15,24 +15,24 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 )
 
-func TestNewYokohamaArenaScraper(t *testing.T) {
-	scraper := NewYokohamaArenaScraper()
+func TestNewYokohamaArenaFetcher(t *testing.T) {
+	scraper := NewYokohamaArenaFetcher()
 
 	require.NotNil(t, scraper)
-	arenaScraper, ok := scraper.(*YokohamaArenaScraper)
+	arenaScraper, ok := scraper.(*YokohamaArenaFetcher)
 	require.True(t, ok)
 	assert.Equal(t, "https://www.yokohama-arena.co.jp", arenaScraper.baseURL)
 }
 
-func TestYokohamaArenaScraper_VenueID(t *testing.T) {
-	scraper := NewYokohamaArenaScraper()
+func TestYokohamaArenaFetcher_VenueID(t *testing.T) {
+	scraper := NewYokohamaArenaFetcher()
 
 	vid := scraper.VenueID()
 
 	assert.Equal(t, event.VenueIDYokohamaArena, vid)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_SingleEventSingleTime(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_SingleEventSingleTime(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -48,7 +48,7 @@ func TestYokohamaArenaScraper_FetchEvents_SingleEventSingleTime(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ func TestYokohamaArenaScraper_FetchEvents_SingleEventSingleTime(t *testing.T) {
 	assert.Equal(t, 0, events[0].OpenTime.Minute())
 }
 
-func TestYokohamaArenaScraper_FetchEvents_SingleEventMultipleTimes(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_SingleEventMultipleTimes(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -79,7 +79,7 @@ func TestYokohamaArenaScraper_FetchEvents_SingleEventMultipleTimes(t *testing.T)
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
@@ -102,7 +102,7 @@ func TestYokohamaArenaScraper_FetchEvents_SingleEventMultipleTimes(t *testing.T)
 	assert.Equal(t, 30, events[1].OpenTime.Minute())
 }
 
-func TestYokohamaArenaScraper_FetchEvents_NoEventsToday(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	tomorrow := time.Now().In(jst).AddDate(0, 0, 1)
 	tomorrowStr := tomorrow.Format("2006-01-02")
@@ -118,14 +118,14 @@ func TestYokohamaArenaScraper_FetchEvents_NoEventsToday(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_EmptyPath(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_EmptyPath(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -141,31 +141,31 @@ func TestYokohamaArenaScraper_FetchEvents_EmptyPath(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_EmptyResponse(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_EmptyResponse(t *testing.T) {
 	server := createYokohamaArenaMockServer(`[]`)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_HTTPError(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_HTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.Error(t, err)
@@ -173,11 +173,11 @@ func TestYokohamaArenaScraper_FetchEvents_HTTPError(t *testing.T) {
 	assert.Contains(t, err.Error(), "unexpected status code: 500")
 }
 
-func TestYokohamaArenaScraper_FetchEvents_ContextCancellation(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	server := createYokohamaArenaMockServer(`[]`)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -187,7 +187,7 @@ func TestYokohamaArenaScraper_FetchEvents_ContextCancellation(t *testing.T) {
 	assert.Nil(t, events)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_NoStartTime(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_NoStartTime(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -203,7 +203,7 @@ func TestYokohamaArenaScraper_FetchEvents_NoStartTime(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
@@ -214,7 +214,7 @@ func TestYokohamaArenaScraper_FetchEvents_NoStartTime(t *testing.T) {
 	assert.Equal(t, 10, events[0].OpenTime.Hour())
 }
 
-func TestYokohamaArenaScraper_FetchEvents_NoTimes(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_NoTimes(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -230,7 +230,7 @@ func TestYokohamaArenaScraper_FetchEvents_NoTimes(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestYokohamaArenaScraper_FetchEvents_NoTimes(t *testing.T) {
 	assert.Nil(t, events[0].OpenTime)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -260,7 +260,7 @@ func TestYokohamaArenaScraper_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
@@ -268,7 +268,7 @@ func TestYokohamaArenaScraper_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
 	assert.Equal(t, "テスト", events[0].Title)
 }
 
-func TestYokohamaArenaScraper_FetchEvents_FullwidthColon(t *testing.T) {
+func TestYokohamaArenaFetcher_FetchEvents_FullwidthColon(t *testing.T) {
 	jst := time.FixedZone("JST", 9*60*60)
 	today := time.Now().In(jst)
 	todayStr := today.Format("2006-01-02")
@@ -284,7 +284,7 @@ func TestYokohamaArenaScraper_FetchEvents_FullwidthColon(t *testing.T) {
 	server := createYokohamaArenaMockServer(jsonResp)
 	defer server.Close()
 
-	scraper := &YokohamaArenaScraper{baseURL: server.URL}
+	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
