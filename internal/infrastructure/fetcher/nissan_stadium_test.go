@@ -53,9 +53,10 @@ func TestNissanStadiumFetcher_FetchEvents_Success_SingleEvent(t *testing.T) {
 	require.Len(t, events, 1)
 	assert.Equal(t, "サッカー練習試合", events[0].Title)
 	assert.Equal(t, currentDay, events[0].Date.Day())
-	require.NotNil(t, events[0].StartTime)
-	assert.Equal(t, 14, events[0].StartTime.Hour())
-	assert.Equal(t, 0, events[0].StartTime.Minute())
+	require.Len(t, events[0].Schedules, 1)
+	require.NotNil(t, events[0].Schedules[0].StartTime)
+	assert.Equal(t, 14, events[0].Schedules[0].StartTime.Hour())
+	assert.Equal(t, 0, events[0].Schedules[0].StartTime.Minute())
 }
 
 func TestNissanStadiumFetcher_FetchEvents_Success_MultipleEvents(t *testing.T) {
@@ -227,7 +228,7 @@ func TestNissanStadiumFetcher_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	assert.Nil(t, events[0].StartTime)
+	assert.Empty(t, events[0].Schedules)
 }
 
 func TestNissanStadiumFetcher_FetchEvents_PartialFailure(t *testing.T) {
@@ -440,7 +441,7 @@ func TestNissanStadiumFetcher_FetchEvents_InvalidTimeFormat_LogsError(t *testing
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	assert.Equal(t, "イベント", events[0].Title)
-	assert.Nil(t, events[0].StartTime, "StartTime should be nil when time parsing fails")
+	assert.Empty(t, events[0].Schedules, "Schedules should be empty when time parsing fails")
 }
 
 func TestExtractEventID(t *testing.T) {

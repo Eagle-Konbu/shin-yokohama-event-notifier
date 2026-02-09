@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -123,34 +124,67 @@ func (s *EventNotificationService) formatVenueEvents(events []event.Event) strin
 	}
 
 	sort.Slice(events, func(i, j int) bool {
-		if events[i].StartTime == nil && events[j].StartTime == nil {
-			// Fall back to a deterministic ordering when both StartTime values are nil.
+		si := firstStartTime(events[i])
+		sj := firstStartTime(events[j])
+		if si == nil && sj == nil {
 			return events[i].Title < events[j].Title
 		}
-		if events[i].StartTime == nil {
+		if si == nil {
 			return false
 		}
-		if events[j].StartTime == nil {
+		if sj == nil {
 			return true
 		}
-		return events[i].StartTime.Before(*events[j].StartTime)
+		return si.Before(*sj)
 	})
 
 	var lines []string
 	for _, e := range events {
-		var line string
-		switch {
-		case e.OpenTime != nil && e.StartTime != nil:
-			line = fmt.Sprintf("・**%s開場 / %s開始** %s", e.OpenTime.Format("15:04"), e.StartTime.Format("15:04"), e.Title)
-		case e.StartTime != nil:
-			line = fmt.Sprintf("・**%s開始** %s", e.StartTime.Format("15:04"), e.Title)
-		case e.OpenTime != nil:
-			line = fmt.Sprintf("・**%s開場** %s", e.OpenTime.Format("15:04"), e.Title)
-		default:
-			line = fmt.Sprintf("・%s", e.Title)
-		}
-		lines = append(lines, line)
+		lines = append(lines, formatEvent(e))
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func firstStartTime(e event.Event) *time.Time {
+	if len(e.Schedules) > 0 {
+		return e.Schedules[0].StartTime
+	}
+	return nil
+}
+
+func formatEvent(e event.Event) string {
+	if len(e.Schedules) == 0 {
+		return fmt.Sprintf("・%s", e.Title)
+	}
+
+	if len(e.Schedules) == 1 {
+		return fmt.Sprintf("・**%s** %s", formatSchedule(e.Schedules[0]), e.Title)
+	}
+
+	var parts []string
+	for i, slot := range e.Schedules {
+		parts = append(parts, fmt.Sprintf("%s%s", circledNumber(i+1), formatSchedule(slot)))
+	}
+	return fmt.Sprintf("・**%s** %s", strings.Join(parts, " "), e.Title)
+}
+
+func formatSchedule(slot event.Schedule) string {
+	switch {
+	case slot.OpenTime != nil && slot.StartTime != nil:
+		return fmt.Sprintf("%s開場 / %s開始", slot.OpenTime.Format("15:04"), slot.StartTime.Format("15:04"))
+	case slot.StartTime != nil:
+		return fmt.Sprintf("%s開始", slot.StartTime.Format("15:04"))
+	case slot.OpenTime != nil:
+		return fmt.Sprintf("%s開場", slot.OpenTime.Format("15:04"))
+	default:
+		return ""
+	}
+}
+
+func circledNumber(n int) string {
+	if n >= 1 && n <= 20 {
+		return string(rune('\u2460' + n - 1))
+	}
+	return fmt.Sprintf("(%d)", n)
 }

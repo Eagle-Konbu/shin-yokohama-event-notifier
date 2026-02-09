@@ -264,7 +264,8 @@ func (s *NissanStadiumFetcher) buildEventFromFields(fields eventDetailFields, ca
 		return event.Event{}, fmt.Errorf("failed to parse date for event %s: %w", candidate.url, err)
 	}
 
-	var startTime *time.Time
+	evt := event.Event{Title: title, Date: parsedDate}
+
 	if fields.time != "" {
 		t, err := parseJapaneseTime(fields.time, parsedDate)
 		if err != nil {
@@ -275,11 +276,11 @@ func (s *NissanStadiumFetcher) buildEventFromFields(fields eventDetailFields, ca
 				"err", err,
 			)
 		} else {
-			startTime = &t
+			evt.Schedules = []event.Schedule{{StartTime: &t}}
 		}
 	}
 
-	return event.Event{Title: title, Date: parsedDate, StartTime: startTime}, nil
+	return evt, nil
 }
 
 func (s *NissanStadiumFetcher) VenueID() event.VenueID {

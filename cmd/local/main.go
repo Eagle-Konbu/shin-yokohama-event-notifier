@@ -91,8 +91,8 @@ func printVenue(venue *event.Venue) {
 	})
 
 	for _, e := range venue.Events {
-		if e.StartTime != nil {
-			fmt.Printf("  %s %s\n", e.StartTime.Format("15:04"), e.Title)
+		if len(e.Schedules) > 0 && e.Schedules[0].StartTime != nil {
+			fmt.Printf("  %s %s\n", e.Schedules[0].StartTime.Format("15:04"), e.Title)
 		} else {
 			fmt.Printf("  --:-- %s\n", e.Title)
 		}
