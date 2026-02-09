@@ -105,7 +105,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 		{
 			Title: "テストイベント",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{StartTime: timePtr(time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local))},
 			},
 		},
@@ -205,14 +205,14 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 		{
 			Title: "イベントB",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{StartTime: timePtr(time.Date(2026, 1, 28, 19, 0, 0, 0, time.Local))},
 			},
 		},
 		{
 			Title: "イベントA",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{StartTime: timePtr(time.Date(2026, 1, 28, 18, 0, 0, 0, time.Local))},
 			},
 		},
@@ -270,7 +270,7 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 		{
 			Title: "時間ありイベント",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{StartTime: timePtr(time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local))},
 			},
 		},
@@ -305,7 +305,7 @@ func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
 		{
 			Title: "開場時間のみイベント",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{OpenTime: timePtr(time.Date(2026, 1, 28, 17, 0, 0, 0, time.Local))},
 			},
 		},
@@ -335,7 +335,7 @@ func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
 		{
 			Title: "開場開始両方イベント",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{
 					OpenTime:  timePtr(time.Date(2026, 1, 28, 17, 0, 0, 0, time.Local)),
 					StartTime: timePtr(time.Date(2026, 1, 28, 18, 30, 0, 0, time.Local)),
@@ -361,14 +361,14 @@ func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
 	assert.Equal(t, "・**17:00開場 / 18:30開始** 開場開始両方イベント", arenaField.Value)
 }
 
-func TestNotifyTodayEvents_EventWithMultipleTimeSlots(t *testing.T) {
+func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
 	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
 	events := []event.Event{
 		{
 			Title: "複数公演イベント",
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
-			TimeSlots: []event.TimeSlot{
+			Schedules: []event.Schedule{
 				{
 					OpenTime:  timePtr(time.Date(2026, 1, 28, 11, 30, 0, 0, time.Local)),
 					StartTime: timePtr(time.Date(2026, 1, 28, 12, 30, 0, 0, time.Local)),

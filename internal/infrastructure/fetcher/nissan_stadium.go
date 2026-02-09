@@ -276,7 +276,7 @@ func (s *NissanStadiumFetcher) buildEventFromFields(fields eventDetailFields, ca
 				"err", err,
 			)
 		} else {
-			evt.TimeSlots = []event.TimeSlot{{StartTime: &t}}
+			evt.Schedules = []event.Schedule{{StartTime: &t}}
 		}
 	}
 

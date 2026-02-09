@@ -2,7 +2,7 @@ package event
 
 import "time"
 
-type TimeSlot struct {
+type Schedule struct {
 	StartTime *time.Time
 	OpenTime  *time.Time
 }
@@ -10,5 +10,5 @@ type TimeSlot struct {
 type Event struct {
 	Date      time.Time
 	Title     string
-	TimeSlots []TimeSlot
+	Schedules []Schedule
 }

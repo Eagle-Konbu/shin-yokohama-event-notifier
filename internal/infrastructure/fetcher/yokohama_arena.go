@@ -97,7 +97,7 @@ func (s *YokohamaArenaFetcher) buildEvent(raw yokohamaArenaEvent, today time.Tim
 	evt := event.Event{Title: raw.Title, Date: date}
 
 	for i := range n {
-		slot := event.TimeSlot{}
+		slot := event.Schedule{}
 
 		if i < len(raw.EvStart) {
 			if t, err := parseArenaTime(raw.EvStart[i], date); err == nil {
@@ -115,7 +115,7 @@ func (s *YokohamaArenaFetcher) buildEvent(raw yokohamaArenaEvent, today time.Tim
 			}
 		}
 
-		evt.TimeSlots = append(evt.TimeSlots, slot)
+		evt.Schedules = append(evt.Schedules, slot)
 	}
 
 	return evt

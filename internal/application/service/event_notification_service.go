@@ -147,29 +147,29 @@ func (s *EventNotificationService) formatVenueEvents(events []event.Event) strin
 }
 
 func firstStartTime(e event.Event) *time.Time {
-	if len(e.TimeSlots) > 0 {
-		return e.TimeSlots[0].StartTime
+	if len(e.Schedules) > 0 {
+		return e.Schedules[0].StartTime
 	}
 	return nil
 }
 
 func formatEvent(e event.Event) string {
-	if len(e.TimeSlots) == 0 {
+	if len(e.Schedules) == 0 {
 		return fmt.Sprintf("・%s", e.Title)
 	}
 
-	if len(e.TimeSlots) == 1 {
-		return fmt.Sprintf("・**%s** %s", formatTimeSlot(e.TimeSlots[0]), e.Title)
+	if len(e.Schedules) == 1 {
+		return fmt.Sprintf("・**%s** %s", formatSchedule(e.Schedules[0]), e.Title)
 	}
 
 	var parts []string
-	for i, slot := range e.TimeSlots {
-		parts = append(parts, fmt.Sprintf("%s%s", circledNumber(i+1), formatTimeSlot(slot)))
+	for i, slot := range e.Schedules {
+		parts = append(parts, fmt.Sprintf("%s%s", circledNumber(i+1), formatSchedule(slot)))
 	}
 	return fmt.Sprintf("・**%s** %s", strings.Join(parts, " "), e.Title)
 }
 
-func formatTimeSlot(slot event.TimeSlot) string {
+func formatSchedule(slot event.Schedule) string {
 	switch {
 	case slot.OpenTime != nil && slot.StartTime != nil:
 		return fmt.Sprintf("%s開場 / %s開始", slot.OpenTime.Format("15:04"), slot.StartTime.Format("15:04"))
