@@ -55,12 +55,13 @@ func TestYokohamaArenaFetcher_FetchEvents_SingleEventSingleTime(t *testing.T) {
 	require.Len(t, events, 1)
 	assert.Equal(t, "テストイベント", events[0].Title)
 	assert.Equal(t, today.Day(), events[0].Date.Day())
-	require.NotNil(t, events[0].StartTime)
-	assert.Equal(t, 17, events[0].StartTime.Hour())
-	assert.Equal(t, 0, events[0].StartTime.Minute())
-	require.NotNil(t, events[0].OpenTime)
-	assert.Equal(t, 16, events[0].OpenTime.Hour())
-	assert.Equal(t, 0, events[0].OpenTime.Minute())
+	require.Len(t, events[0].TimeSlots, 1)
+	require.NotNil(t, events[0].TimeSlots[0].StartTime)
+	assert.Equal(t, 17, events[0].TimeSlots[0].StartTime.Hour())
+	assert.Equal(t, 0, events[0].TimeSlots[0].StartTime.Minute())
+	require.NotNil(t, events[0].TimeSlots[0].OpenTime)
+	assert.Equal(t, 16, events[0].TimeSlots[0].OpenTime.Hour())
+	assert.Equal(t, 0, events[0].TimeSlots[0].OpenTime.Minute())
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_SingleEventMultipleTimes(t *testing.T) {
@@ -83,23 +84,24 @@ func TestYokohamaArenaFetcher_FetchEvents_SingleEventMultipleTimes(t *testing.T)
 	events, err := scraper.FetchEvents(context.Background())
 
 	require.NoError(t, err)
-	require.Len(t, events, 2)
-
+	require.Len(t, events, 1)
 	assert.Equal(t, "複数公演イベント", events[0].Title)
-	require.NotNil(t, events[0].StartTime)
-	assert.Equal(t, 12, events[0].StartTime.Hour())
-	assert.Equal(t, 30, events[0].StartTime.Minute())
-	require.NotNil(t, events[0].OpenTime)
-	assert.Equal(t, 11, events[0].OpenTime.Hour())
-	assert.Equal(t, 30, events[0].OpenTime.Minute())
 
-	assert.Equal(t, "複数公演イベント", events[1].Title)
-	require.NotNil(t, events[1].StartTime)
-	assert.Equal(t, 17, events[1].StartTime.Hour())
-	assert.Equal(t, 30, events[1].StartTime.Minute())
-	require.NotNil(t, events[1].OpenTime)
-	assert.Equal(t, 16, events[1].OpenTime.Hour())
-	assert.Equal(t, 30, events[1].OpenTime.Minute())
+	require.Len(t, events[0].TimeSlots, 2)
+
+	require.NotNil(t, events[0].TimeSlots[0].StartTime)
+	assert.Equal(t, 12, events[0].TimeSlots[0].StartTime.Hour())
+	assert.Equal(t, 30, events[0].TimeSlots[0].StartTime.Minute())
+	require.NotNil(t, events[0].TimeSlots[0].OpenTime)
+	assert.Equal(t, 11, events[0].TimeSlots[0].OpenTime.Hour())
+	assert.Equal(t, 30, events[0].TimeSlots[0].OpenTime.Minute())
+
+	require.NotNil(t, events[0].TimeSlots[1].StartTime)
+	assert.Equal(t, 17, events[0].TimeSlots[1].StartTime.Hour())
+	assert.Equal(t, 30, events[0].TimeSlots[1].StartTime.Minute())
+	require.NotNil(t, events[0].TimeSlots[1].OpenTime)
+	assert.Equal(t, 16, events[0].TimeSlots[1].OpenTime.Hour())
+	assert.Equal(t, 30, events[0].TimeSlots[1].OpenTime.Minute())
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_NoEventsToday(t *testing.T) {
@@ -209,9 +211,10 @@ func TestYokohamaArenaFetcher_FetchEvents_NoStartTime(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	assert.Equal(t, "開場のみイベント", events[0].Title)
-	assert.Nil(t, events[0].StartTime)
-	require.NotNil(t, events[0].OpenTime)
-	assert.Equal(t, 10, events[0].OpenTime.Hour())
+	require.Len(t, events[0].TimeSlots, 1)
+	assert.Nil(t, events[0].TimeSlots[0].StartTime)
+	require.NotNil(t, events[0].TimeSlots[0].OpenTime)
+	assert.Equal(t, 10, events[0].TimeSlots[0].OpenTime.Hour())
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_NoTimes(t *testing.T) {
@@ -236,8 +239,7 @@ func TestYokohamaArenaFetcher_FetchEvents_NoTimes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	assert.Equal(t, "時間未定イベント", events[0].Title)
-	assert.Nil(t, events[0].StartTime)
-	assert.Nil(t, events[0].OpenTime)
+	assert.Empty(t, events[0].TimeSlots)
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
@@ -289,11 +291,12 @@ func TestYokohamaArenaFetcher_FetchEvents_FullwidthColon(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	require.NotNil(t, events[0].StartTime)
-	assert.Equal(t, 16, events[0].StartTime.Hour())
-	assert.Equal(t, 0, events[0].StartTime.Minute())
-	require.NotNil(t, events[0].OpenTime)
-	assert.Equal(t, 15, events[0].OpenTime.Hour())
+	require.Len(t, events[0].TimeSlots, 1)
+	require.NotNil(t, events[0].TimeSlots[0].StartTime)
+	assert.Equal(t, 16, events[0].TimeSlots[0].StartTime.Hour())
+	assert.Equal(t, 0, events[0].TimeSlots[0].StartTime.Minute())
+	require.NotNil(t, events[0].TimeSlots[0].OpenTime)
+	assert.Equal(t, 15, events[0].TimeSlots[0].OpenTime.Hour())
 }
 
 func TestStripCircledNumberPrefix(t *testing.T) {

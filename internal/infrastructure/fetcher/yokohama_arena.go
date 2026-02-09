@@ -52,8 +52,7 @@ func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context) ([]event.Event, 
 		if raw.Path == "" || raw.Date1 != todayStr {
 			continue
 		}
-		expanded := s.expandEvents(raw, today)
-		events = append(events, expanded...)
+		events = append(events, s.buildEvent(raw, today))
 	}
 
 	slog.Info("fetched yokohama arena events", "count", len(events))
@@ -86,7 +85,7 @@ func (s *YokohamaArenaFetcher) fetchJSON(ctx context.Context, apiURL string) ([]
 	return rawEvents, nil
 }
 
-func (s *YokohamaArenaFetcher) expandEvents(raw yokohamaArenaEvent, today time.Time) []event.Event {
+func (s *YokohamaArenaFetcher) buildEvent(raw yokohamaArenaEvent, today time.Time) event.Event {
 	jst := time.FixedZone("JST", 9*60*60)
 	date := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, jst)
 
@@ -95,17 +94,14 @@ func (s *YokohamaArenaFetcher) expandEvents(raw yokohamaArenaEvent, today time.T
 		n = len(raw.EvOpen)
 	}
 
-	if n == 0 {
-		return []event.Event{{Title: raw.Title, Date: date}}
-	}
+	evt := event.Event{Title: raw.Title, Date: date}
 
-	var events []event.Event
 	for i := range n {
-		evt := event.Event{Title: raw.Title, Date: date}
+		slot := event.TimeSlot{}
 
 		if i < len(raw.EvStart) {
 			if t, err := parseArenaTime(raw.EvStart[i], date); err == nil {
-				evt.StartTime = &t
+				slot.StartTime = &t
 			} else {
 				slog.Error("failed to parse start time", "time", raw.EvStart[i], "err", err)
 			}
@@ -113,16 +109,16 @@ func (s *YokohamaArenaFetcher) expandEvents(raw yokohamaArenaEvent, today time.T
 
 		if i < len(raw.EvOpen) {
 			if t, err := parseArenaTime(raw.EvOpen[i], date); err == nil {
-				evt.OpenTime = &t
+				slot.OpenTime = &t
 			} else {
 				slog.Error("failed to parse open time", "time", raw.EvOpen[i], "err", err)
 			}
 		}
 
-		events = append(events, evt)
+		evt.TimeSlots = append(evt.TimeSlots, slot)
 	}
 
-	return events
+	return evt
 }
 
 func parseArenaTime(s string, baseDate time.Time) (time.Time, error) {
