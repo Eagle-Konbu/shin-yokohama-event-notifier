@@ -64,7 +64,7 @@ func (s *SkateCenterFetcher) FetchEvents(ctx context.Context) ([]event.Event, er
 		if t.In(jst).Format("2006-01-02") != todayStr {
 			continue
 		}
-		events = append(events, buildSkateCenterEvent(raw, today))
+		events = append(events, buildSkateCenterEvent(raw, t, today))
 	}
 
 	slog.Info("fetched skate center events", "count", len(events))
@@ -79,6 +79,10 @@ func (s *SkateCenterFetcher) fetchHTML(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
+
+	req.Header.Set("User-Agent", "shin-yokohama-event-notifier/1.0 (+https://github.com/Eagle-Konbu/shin-yokohama-event-notifier)")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "ja,en;q=0.8")
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -106,8 +110,12 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 	}
 
 	var events []jsonLDEvent
+	var parseErr error
 	var traverse func(*html.Node)
 	traverse = func(n *html.Node) {
+		if parseErr != nil {
+			return
+		}
 		if n.Type == html.ElementNode && n.Data == "script" {
 			for _, attr := range n.Attr {
 				if attr.Key == "type" && attr.Val == "application/ld+json" {
@@ -115,7 +123,7 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 						var raw json.RawMessage
 						text := n.FirstChild.Data
 						if err := json.Unmarshal([]byte(text), &raw); err != nil {
-							slog.Error("failed to unmarshal JSON-LD", "err", err)
+							parseErr = fmt.Errorf("failed to unmarshal JSON-LD: %w", err)
 							break
 						}
 
@@ -146,28 +154,25 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 	}
 	traverse(doc)
 
+	if parseErr != nil {
+		return nil, parseErr
+	}
+
 	return events, nil
 }
 
-func buildSkateCenterEvent(raw jsonLDEvent, today time.Time) event.Event {
+func buildSkateCenterEvent(raw jsonLDEvent, startTime time.Time, today time.Time) event.Event {
 	jst := time.FixedZone("JST", 9*60*60)
 	date := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, jst)
+	startTimeJST := startTime.In(jst)
 
-	evt := event.Event{
+	return event.Event{
 		Title: raw.Name,
 		Date:  date,
+		Schedules: []event.Schedule{
+			{StartTime: &startTimeJST},
+		},
 	}
-
-	t, err := time.Parse(time.RFC3339, raw.StartDate)
-	if err == nil {
-		startTime := t.In(jst)
-		schedule := event.Schedule{
-			StartTime: &startTime,
-		}
-		evt.Schedules = append(evt.Schedules, schedule)
-	}
-
-	return evt
 }
 
 func (s *SkateCenterFetcher) VenueID() event.VenueID {
