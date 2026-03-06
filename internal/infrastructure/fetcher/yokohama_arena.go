@@ -16,12 +16,28 @@ import (
 
 type YokohamaArenaFetcher struct {
 	baseURL string
+	now     func() time.Time
 }
 
 func NewYokohamaArenaFetcher() ports.EventFetcher {
 	return &YokohamaArenaFetcher{
 		baseURL: "https://www.yokohama-arena.co.jp",
 	}
+}
+
+func NewYokohamaArenaFetcherWithNow(now func() time.Time) ports.EventFetcher {
+	return &YokohamaArenaFetcher{
+		baseURL: "https://www.yokohama-arena.co.jp",
+		now:     now,
+	}
+}
+
+func (s *YokohamaArenaFetcher) today() time.Time {
+	jst := time.FixedZone("JST", 9*60*60)
+	if s.now != nil {
+		return s.now().In(jst)
+	}
+	return time.Now().In(jst)
 }
 
 type yokohamaArenaEvent struct {
@@ -33,8 +49,7 @@ type yokohamaArenaEvent struct {
 }
 
 func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
-	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
+	today := s.today()
 	todayStr := today.Format("2006-01-02")
 	yearMonth := today.Format("200601")
 

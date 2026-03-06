@@ -70,12 +70,12 @@ tasks:
   run-local:
     desc: Run locally and preview events (no Discord notification)
     cmds:
-      - go run ./cmd/local/
+      - go run ./cmd/local/ {{.CLI_ARGS}}
 
   run-local-send:
     desc: Run locally and send notification to Discord (requires DISCORD_WEBHOOK_URL)
     cmds:
-      - go run ./cmd/local/ --send
+      - go run ./cmd/local/ --send {{.CLI_ARGS}}
 
   init:
     desc: Initialize Terraform

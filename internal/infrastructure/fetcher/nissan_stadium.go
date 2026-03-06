@@ -19,12 +19,28 @@ import (
 
 type NissanStadiumFetcher struct {
 	baseURL string
+	now     func() time.Time
 }
 
 func NewNissanStadiumFetcher() ports.EventFetcher {
 	return &NissanStadiumFetcher{
 		baseURL: "https://www.nissan-stadium.jp",
 	}
+}
+
+func NewNissanStadiumFetcherWithNow(now func() time.Time) ports.EventFetcher {
+	return &NissanStadiumFetcher{
+		baseURL: "https://www.nissan-stadium.jp",
+		now:     now,
+	}
+}
+
+func (s *NissanStadiumFetcher) today() time.Time {
+	jst := time.FixedZone("JST", 9*60*60)
+	if s.now != nil {
+		return s.now().In(jst)
+	}
+	return time.Now().In(jst)
 }
 
 type eventCandidate struct {
@@ -35,8 +51,7 @@ type eventCandidate struct {
 var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
 
 func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
-	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
+	today := s.today()
 
 	slog.Info("fetching nissan stadium events", "date", today.Format("2006-01-02"))
 

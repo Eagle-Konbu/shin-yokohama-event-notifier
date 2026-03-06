@@ -25,6 +25,42 @@ func TestNewNissanStadiumFetcher(t *testing.T) {
 	assert.Equal(t, "https://www.nissan-stadium.jp", nissanScraper.baseURL)
 }
 
+func TestNewNissanStadiumFetcherWithNow(t *testing.T) {
+	fixedTime := time.Date(2026, 3, 15, 12, 0, 0, 0, time.UTC)
+	scraper := NewNissanStadiumFetcherWithNow(func() time.Time { return fixedTime })
+
+	require.NotNil(t, scraper)
+	nissanScraper, ok := scraper.(*NissanStadiumFetcher)
+	require.True(t, ok)
+	assert.Equal(t, "https://www.nissan-stadium.jp", nissanScraper.baseURL)
+	assert.NotNil(t, nissanScraper.now)
+}
+
+func TestNissanStadiumFetcher_FetchEvents_WithNow(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	fixedDate := time.Date(2026, 1, 15, 0, 0, 0, 0, jst)
+
+	calendarHTML := createMockCalendarHTML(15, "固定日付イベント", "event1", "日産スタジアム")
+	detailHTML := createMockDetailHTML("固定日付イベント", "2026年1月15日", "14時", "日産スタジアム")
+
+	server := createMockServer(calendarHTML, detailHTML)
+	defer server.Close()
+
+	scraper := &NissanStadiumFetcher{
+		baseURL: server.URL,
+		now:     func() time.Time { return fixedDate },
+	}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx)
+
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "固定日付イベント", events[0].Title)
+	assert.Equal(t, 15, events[0].Date.Day())
+	assert.Equal(t, time.January, events[0].Date.Month())
+}
+
 func TestNissanStadiumFetcher_VenueID(t *testing.T) {
 	scraper := NewNissanStadiumFetcher()
 

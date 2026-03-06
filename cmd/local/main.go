@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
@@ -22,14 +23,30 @@ func main() {
 	})))
 
 	sendFlag := flag.Bool("send", false, "Send notification to Discord (requires DISCORD_WEBHOOK_URL)")
+	dateFlag := flag.String("date", "", "Date to fetch events for (YYYY-MM-DD format, defaults to today)")
 	flag.Parse()
 
 	ctx := context.Background()
 
-	fetchers := []ports.EventFetcher{
-		fetcher.NewYokohamaArenaFetcher(),
-		fetcher.NewNissanStadiumFetcher(),
-		fetcher.NewSkateCenterFetcher(),
+	var fetchers []ports.EventFetcher
+	if *dateFlag != "" {
+		jst := time.FixedZone("JST", 9*60*60)
+		t, err := time.ParseInLocation("2006-01-02", *dateFlag, jst)
+		if err != nil {
+			log.Fatalf("Invalid date format (expected YYYY-MM-DD): %v", err)
+		}
+		now := func() time.Time { return t }
+		fetchers = []ports.EventFetcher{
+			fetcher.NewYokohamaArenaFetcherWithNow(now),
+			fetcher.NewNissanStadiumFetcherWithNow(now),
+			fetcher.NewSkateCenterFetcher(),
+		}
+	} else {
+		fetchers = []ports.EventFetcher{
+			fetcher.NewYokohamaArenaFetcher(),
+			fetcher.NewNissanStadiumFetcher(),
+			fetcher.NewSkateCenterFetcher(),
+		}
 	}
 
 	venues := event.NewAllVenues()

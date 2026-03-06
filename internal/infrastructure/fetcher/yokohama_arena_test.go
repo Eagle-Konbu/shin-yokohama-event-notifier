@@ -24,12 +24,52 @@ func TestNewYokohamaArenaFetcher(t *testing.T) {
 	assert.Equal(t, "https://www.yokohama-arena.co.jp", arenaScraper.baseURL)
 }
 
+func TestNewYokohamaArenaFetcherWithNow(t *testing.T) {
+	fixedTime := time.Date(2026, 3, 15, 12, 0, 0, 0, time.UTC)
+	scraper := NewYokohamaArenaFetcherWithNow(func() time.Time { return fixedTime })
+
+	require.NotNil(t, scraper)
+	arenaScraper, ok := scraper.(*YokohamaArenaFetcher)
+	require.True(t, ok)
+	assert.Equal(t, "https://www.yokohama-arena.co.jp", arenaScraper.baseURL)
+	assert.NotNil(t, arenaScraper.now)
+}
+
 func TestYokohamaArenaFetcher_VenueID(t *testing.T) {
 	scraper := NewYokohamaArenaFetcher()
 
 	vid := scraper.VenueID()
 
 	assert.Equal(t, event.VenueIDYokohamaArena, vid)
+}
+
+func TestYokohamaArenaFetcher_FetchEvents_WithNow(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	fixedDate := time.Date(2026, 3, 15, 0, 0, 0, 0, jst)
+	fixedDateStr := fixedDate.Format("2006-01-02")
+
+	jsonResp := fmt.Sprintf(`[{
+		"date1": "%s",
+		"title": "固定日付イベント",
+		"ev_open": ["16:00"],
+		"ev_start": ["17:00"],
+		"path": "/event/detail/test"
+	}]`, fixedDateStr)
+
+	server := createYokohamaArenaMockServer(jsonResp)
+	defer server.Close()
+
+	scraper := &YokohamaArenaFetcher{
+		baseURL: server.URL,
+		now:     func() time.Time { return fixedDate },
+	}
+	events, err := scraper.FetchEvents(context.Background())
+
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "固定日付イベント", events[0].Title)
+	assert.Equal(t, 15, events[0].Date.Day())
+	assert.Equal(t, time.March, events[0].Date.Month())
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_SingleEventSingleTime(t *testing.T) {
