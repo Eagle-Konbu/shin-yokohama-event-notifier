@@ -159,6 +159,7 @@ func TestSkateCenterFetcher_FetchEvents_InvalidJSON(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, events)
+	assert.Contains(t, err.Error(), "failed to extract JSON-LD events")
 }
 
 func TestSkateCenterFetcher_FetchEvents_NonEventType(t *testing.T) {
