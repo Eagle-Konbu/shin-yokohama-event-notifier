@@ -106,8 +106,12 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 	}
 
 	var events []jsonLDEvent
+	var parseErr error
 	var traverse func(*html.Node)
 	traverse = func(n *html.Node) {
+		if parseErr != nil {
+			return
+		}
 		if n.Type == html.ElementNode && n.Data == "script" {
 			for _, attr := range n.Attr {
 				if attr.Key == "type" && attr.Val == "application/ld+json" {
@@ -115,7 +119,7 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 						var raw json.RawMessage
 						text := n.FirstChild.Data
 						if err := json.Unmarshal([]byte(text), &raw); err != nil {
-							slog.Error("failed to unmarshal JSON-LD", "err", err)
+							parseErr = fmt.Errorf("failed to unmarshal JSON-LD: %w", err)
 							break
 						}
 
@@ -146,6 +150,9 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 	}
 	traverse(doc)
 
+	if parseErr != nil {
+		return nil, parseErr
+	}
 	return events, nil
 }
 

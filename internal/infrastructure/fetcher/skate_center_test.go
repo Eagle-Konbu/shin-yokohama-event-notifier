@@ -157,8 +157,8 @@ func TestSkateCenterFetcher_FetchEvents_InvalidJSON(t *testing.T) {
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
 	events, err := scraper.FetchEvents(context.Background())
 
-	require.NoError(t, err)
-	assert.Empty(t, events)
+	require.Error(t, err)
+	assert.Nil(t, events)
 }
 
 func TestSkateCenterFetcher_FetchEvents_NonEventType(t *testing.T) {
