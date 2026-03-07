@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -106,6 +107,7 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 	}
 
 	var events []jsonLDEvent
+	var parseErrs []error
 	var traverse func(*html.Node)
 	traverse = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "script" {
@@ -116,6 +118,7 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 						text := n.FirstChild.Data
 						if err := json.Unmarshal([]byte(text), &raw); err != nil {
 							slog.Error("failed to unmarshal JSON-LD", "err", err)
+							parseErrs = append(parseErrs, err)
 							break
 						}
 
@@ -145,6 +148,10 @@ func extractJSONLDEvents(htmlContent string) ([]jsonLDEvent, error) {
 		}
 	}
 	traverse(doc)
+
+	if len(events) == 0 && len(parseErrs) > 0 {
+		return nil, fmt.Errorf("failed to parse %d JSON-LD block(s), no events extracted: %w", len(parseErrs), errors.Join(parseErrs...))
+	}
 
 	return events, nil
 }
