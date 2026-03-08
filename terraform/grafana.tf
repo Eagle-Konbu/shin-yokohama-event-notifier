@@ -233,7 +233,7 @@ resource "grafana_dashboard" "lambda" {
           {
             refId      = "C"
             type       = "math"
-            expression = "errors / invocations * 100"
+            expression = "IF(invocations > 0, errors / invocations * 100, 0)"
           }
         ]
         fieldConfig = {
