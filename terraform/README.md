@@ -13,7 +13,7 @@ This Terraform configuration manages AWS infrastructure for the shin-yokohama-ev
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.0, < 6.0 |
-| <a name="requirement_grafana"></a> [grafana](#requirement\_grafana) | >= 3.0 |
+| <a name="requirement_grafana"></a> [grafana](#requirement\_grafana) | >= 4.0, < 5.0 |
 
 ## Providers
 
@@ -43,6 +43,7 @@ This Terraform configuration manages AWS infrastructure for the shin-yokohama-ev
 | <a name="output_cloudwatch_log_group"></a> [cloudwatch\_log\_group](#output\_cloudwatch\_log\_group) | CloudWatch log group name |
 | <a name="output_discord_webhook_secret_arn"></a> [discord\_webhook\_secret\_arn](#output\_discord\_webhook\_secret\_arn) | ARN of the Secrets Manager secret for Discord webhook URL |
 | <a name="output_eventbridge_rule_name"></a> [eventbridge\_rule\_name](#output\_eventbridge\_rule\_name) | Name of the EventBridge rule |
+| <a name="output_grafana_dashboard_url"></a> [grafana\_dashboard\_url](#output\_grafana\_dashboard\_url) | URL of the Grafana Lambda monitoring dashboard |
 | <a name="output_lambda_function_arn"></a> [lambda\_function\_arn](#output\_lambda\_function\_arn) | ARN of the Lambda function |
 | <a name="output_lambda_function_name"></a> [lambda\_function\_name](#output\_lambda\_function\_name) | Name of the Lambda function |
 | <a name="output_s3_bucket_name"></a> [s3\_bucket\_name](#output\_s3\_bucket\_name) | Name of the S3 bucket for Lambda artifacts |

@@ -27,3 +27,8 @@ output "discord_webhook_secret_arn" {
   description = "ARN of the Secrets Manager secret for Discord webhook URL"
   value       = aws_secretsmanager_secret.discord_webhook.arn
 }
+
+output "grafana_dashboard_url" {
+  description = "URL of the Grafana Lambda monitoring dashboard"
+  value       = grafana_dashboard.lambda.url
+}
