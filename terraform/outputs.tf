@@ -8,9 +8,9 @@ output "lambda_function_arn" {
   value       = aws_lambda_function.notification.arn
 }
 
-output "eventbridge_rule_name" {
-  description = "Name of the EventBridge rule"
-  value       = aws_cloudwatch_event_rule.schedule.name
+output "eventbridge_schedule_name" {
+  description = "Name of the EventBridge Scheduler schedule"
+  value       = aws_scheduler_schedule.schedule.name
 }
 
 output "s3_bucket_name" {
