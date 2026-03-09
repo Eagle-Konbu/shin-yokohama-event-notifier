@@ -144,24 +144,55 @@ resource "aws_lambda_function" "notification" {
   tags = local.common_tags
 }
 
-resource "aws_cloudwatch_event_rule" "schedule" {
-  name                = "${var.project_name}-schedule"
-  description         = "Trigger Lambda function daily at 6AM JST (21:00 UTC)"
-  schedule_expression = var.schedule_expression
+resource "aws_iam_role" "scheduler_execution" {
+  name = "${var.project_name}-scheduler-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "scheduler.amazonaws.com"
+        }
+      }
+    ]
+  })
 
   tags = local.common_tags
 }
 
-resource "aws_cloudwatch_event_target" "lambda" {
-  rule      = aws_cloudwatch_event_rule.schedule.name
-  target_id = "lambda"
-  arn       = aws_lambda_function.notification.arn
+resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
+  name = "${var.project_name}-scheduler-lambda-invoke"
+  role = aws_iam_role.scheduler_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["lambda:InvokeFunction"]
+        Resource = aws_lambda_function.notification.arn
+      }
+    ]
+  })
 }
 
-resource "aws_lambda_permission" "allow_eventbridge" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.notification.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.schedule.arn
+resource "aws_scheduler_schedule" "schedule" {
+  name        = "${var.project_name}-schedule"
+  description = "Trigger Lambda function daily at 6AM JST (21:00 UTC)"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression          = var.schedule_expression
+  schedule_expression_timezone = "UTC"
+  start_date                   = "2026-04-01T00:00:00Z"
+
+  target {
+    arn      = aws_lambda_function.notification.arn
+    role_arn = aws_iam_role.scheduler_execution.arn
+  }
 }
