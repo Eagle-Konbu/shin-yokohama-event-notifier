@@ -23,10 +23,9 @@ variable "lambda_timeout" {
 }
 
 variable "schedule_expression" {
-  description = "EventBridge cron schedule expression (UTC timezone)"
+  description = "Amazon EventBridge Scheduler cron schedule expression (UTC timezone)"
   type        = string
-  # default     = "cron(0 21 * * ? *)" # Daily at 6AM JST (not implemented yet)
-  default = "cron(0 0 1 1 ? 2099)"
+  default     = "cron(0 21 * * ? *)" # Daily at 6AM JST
 }
 
 variable "log_retention_days" {
