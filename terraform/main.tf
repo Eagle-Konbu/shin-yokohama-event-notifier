@@ -181,7 +181,7 @@ resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
 
 resource "aws_scheduler_schedule" "schedule" {
   name        = "${var.project_name}-schedule"
-  description = "Trigger Lambda function daily at 6AM JST (21:00 UTC)"
+  description = "Trigger Lambda function daily at 6AM JST"
 
   flexible_time_window {
     mode = "OFF"
