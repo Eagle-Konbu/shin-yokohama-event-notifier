@@ -33,7 +33,7 @@ This Terraform configuration manages AWS infrastructure for the shin-yokohama-ev
 | <a name="input_lambda_timeout"></a> [lambda\_timeout](#input\_lambda\_timeout) | Timeout for Lambda function in seconds | `number` | `30` | no |
 | <a name="input_log_retention_days"></a> [log\_retention\_days](#input\_log\_retention\_days) | CloudWatch Logs retention period in days | `number` | `7` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name used for resource naming | `string` | `"shin-yokohama-event-notifier"` | no |
-| <a name="input_schedule_expression"></a> [schedule\_expression](#input\_schedule\_expression) | Amazon EventBridge Scheduler cron schedule expression (UTC timezone) | `string` | `"cron(0 21 * * ? *)"` | no |
+| <a name="input_schedule_expression"></a> [schedule\_expression](#input\_schedule\_expression) | Amazon EventBridge Scheduler cron schedule expression (Asia/Tokyo timezone) | `string` | `"cron(0 6 * * ? *)"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to resources | `map(string)` | `{}` | no |
 
 ## Outputs

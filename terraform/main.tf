@@ -181,15 +181,14 @@ resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
 
 resource "aws_scheduler_schedule" "schedule" {
   name        = "${var.project_name}-schedule"
-  description = "Trigger Lambda function daily at 6AM JST (21:00 UTC)"
+  description = "Trigger Lambda function daily at 6AM JST"
 
   flexible_time_window {
     mode = "OFF"
   }
 
   schedule_expression          = var.schedule_expression
-  schedule_expression_timezone = "UTC"
-  start_date                   = "2026-04-01T00:00:00Z"
+  schedule_expression_timezone = "Asia/Tokyo"
 
   target {
     arn      = aws_lambda_function.notification.arn
