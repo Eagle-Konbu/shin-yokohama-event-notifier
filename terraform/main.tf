@@ -188,8 +188,7 @@ resource "aws_scheduler_schedule" "schedule" {
   }
 
   schedule_expression          = var.schedule_expression
-  schedule_expression_timezone = "UTC"
-  start_date                   = "2026-04-01T00:00:00Z"
+  schedule_expression_timezone = "Asia/Tokyo"
 
   target {
     arn      = aws_lambda_function.notification.arn
