@@ -47,7 +47,7 @@ func TestNissanStadiumFetcher_FetchEvents_Success_SingleEvent(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -100,7 +100,7 @@ func TestNissanStadiumFetcher_FetchEvents_Success_MultipleEvents(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 2)
@@ -120,7 +120,7 @@ func TestNissanStadiumFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -170,7 +170,7 @@ func TestNissanStadiumFetcher_FetchEvents_FiltersByVenue(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -186,7 +186,7 @@ func TestNissanStadiumFetcher_FetchEvents_CalendarFetchError(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -204,7 +204,7 @@ func TestNissanStadiumFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -224,7 +224,7 @@ func TestNissanStadiumFetcher_FetchEvents_MissingTime_DefaultsToZero(t *testing.
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -270,7 +270,7 @@ func TestNissanStadiumFetcher_FetchEvents_PartialFailure(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -312,7 +312,7 @@ func TestNissanStadiumFetcher_FetchEvents_EmptyIDOrTitle(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -332,7 +332,7 @@ func TestNissanStadiumFetcher_FetchEvents_TitleFallback(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -380,7 +380,7 @@ func TestNissanStadiumFetcher_FetchEvents_AllDetailsFailed(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -414,7 +414,7 @@ func TestNissanStadiumFetcher_FetchEvents_InvalidURL(t *testing.T) {
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -435,7 +435,7 @@ func TestNissanStadiumFetcher_FetchEvents_InvalidTimeFormat_LogsError(t *testing
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
 	ctx := context.Background()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, today)
 
 	// The event should still be returned, but without StartTime
 	require.NoError(t, err)

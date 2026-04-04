@@ -214,9 +214,11 @@ func (s *EventNotificationService) formatVenueWeeklyEvents(events []event.Event)
 
 	// Sort by date, then by start time within each date, then by title
 	sort.Slice(events, func(i, j int) bool {
-		di := events[i].Date.Truncate(24 * time.Hour)
-		dj := events[j].Date.Truncate(24 * time.Hour)
-		if !di.Equal(dj) {
+		iy, im, id := events[i].Date.Date()
+		jy, jm, jd := events[j].Date.Date()
+		if iy != jy || im != jm || id != jd {
+			di := time.Date(iy, im, id, 0, 0, 0, 0, events[i].Date.Location())
+			dj := time.Date(jy, jm, jd, 0, 0, 0, 0, events[j].Date.Location())
 			return di.Before(dj)
 		}
 		si := firstStartTime(events[i])
@@ -230,16 +232,20 @@ func (s *EventNotificationService) formatVenueWeeklyEvents(events []event.Event)
 		if sj == nil {
 			return true
 		}
-		return si.Before(*sj)
+		if !si.Equal(*sj) {
+			return si.Before(*sj)
+		}
+		return events[i].Title < events[j].Title
 	})
 
-	// Group events by date
+	// Group events by date (compare year/month/day in the event's timezone)
 	var lines []string
-	var currentDate time.Time
+	var curY, curD int
+	var curM time.Month
 	for _, e := range events {
-		eventDate := e.Date.Truncate(24 * time.Hour)
-		if !eventDate.Equal(currentDate) {
-			currentDate = eventDate
+		ey, em, ed := e.Date.Date()
+		if ey != curY || em != curM || ed != curD {
+			curY, curM, curD = ey, em, ed
 			lines = append(lines, fmt.Sprintf("**%s**", formatDateLabel(e.Date)))
 		}
 		lines = append(lines, formatEvent(e))

@@ -164,7 +164,7 @@ resource "aws_lambda_function" "notification" {
 resource "aws_lambda_function" "notification_weekly" {
   function_name = local.function_name_weekly
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "bootstrap-weekly"
+  handler       = "bootstrap"
   runtime       = "provided.al2023"
   architectures = ["arm64"]
 

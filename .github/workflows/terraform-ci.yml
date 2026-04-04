@@ -50,6 +50,9 @@ jobs:
       - name: Build and package Lambda
         run: task package
 
+      - name: Build and package weekly Lambda
+        run: task package-weekly
+
       - name: Terraform Validate
         run: terraform validate
 
