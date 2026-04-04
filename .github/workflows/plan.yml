@@ -49,9 +49,9 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      - name: Build and package Lambda
+      - name: Build and package daily Lambda
         working-directory: .
-        run: task package
+        run: task package-daily
 
       - name: Build and package weekly Lambda
         working-directory: .

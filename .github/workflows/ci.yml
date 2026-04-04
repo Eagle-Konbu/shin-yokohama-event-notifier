@@ -146,7 +146,7 @@ jobs:
           cache: true
 
       - name: Build Lambda binary
-        run: go build -o bootstrap cmd/lambda/main.go
+        run: go build -o bootstrap cmd/lambda-daily/main.go
 
       - name: Verify binary exists
         run: test -f bootstrap && test -x bootstrap

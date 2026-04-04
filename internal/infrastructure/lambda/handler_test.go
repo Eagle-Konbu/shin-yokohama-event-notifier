@@ -46,21 +46,21 @@ func (m *MockEventFetcher) VenueID() event.VenueID {
 	return m.venueID
 }
 
-func TestNewHandler(t *testing.T) {
+func TestNewDailyHandler(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	handler := NewHandler(svc)
+	handler := NewDailyHandler(svc)
 
 	require.NotNil(t, handler)
 	assert.NotNil(t, handler.eventService)
 }
 
-func TestHandler_HandleRequest_Success(t *testing.T) {
+func TestDailyHandler_HandleRequest_Success(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	handler := NewHandler(svc)
+	handler := NewDailyHandler(svc)
 
 	ctx := context.Background()
 
@@ -74,11 +74,11 @@ func TestHandler_HandleRequest_Success(t *testing.T) {
 	mockFetcher.AssertExpectations(t)
 }
 
-func TestHandler_HandleRequest_ServiceError(t *testing.T) {
+func TestDailyHandler_HandleRequest_ServiceError(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	handler := NewHandler(svc)
+	handler := NewDailyHandler(svc)
 
 	ctx := context.Background()
 	expectedErr := errors.New("fetch error")
@@ -95,11 +95,11 @@ func TestHandler_HandleRequest_ServiceError(t *testing.T) {
 	mockSender.AssertExpectations(t)
 }
 
-func TestHandler_HandleRequest_ContextPropagation(t *testing.T) {
+func TestDailyHandler_HandleRequest_ContextPropagation(t *testing.T) {
 	mockSender := new(MockNotificationSender)
 	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
 	svc := service.NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
-	handler := NewHandler(svc)
+	handler := NewDailyHandler(svc)
 
 	type contextKey string
 	const testKey contextKey = "testKey"
