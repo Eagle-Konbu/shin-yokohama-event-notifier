@@ -54,9 +54,11 @@ jobs:
         run: terraform init -backend=false
 
       - name: Build and package Lambda
+        working-directory: .
         run: task package
 
       - name: Build and package weekly Lambda
+        working-directory: .
         run: task package-weekly
 
       - name: Terraform Validate

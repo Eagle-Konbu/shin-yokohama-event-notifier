@@ -98,24 +98,32 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 		venueMap[v.ID] = v
 	}
 
+	type fetchResult struct {
+		venueID event.VenueID
+		events  []event.Event
+	}
+	results := make([]fetchResult, len(s.eventFetchers))
+
 	eg, ctx := errgroup.WithContext(ctx)
-	for _, fetcher := range s.eventFetchers {
+	for i, fetcher := range s.eventFetchers {
 		eg.Go(func() error {
 			events, err := fetcher.FetchEvents(ctx, date)
 			if err != nil {
 				return err
 			}
-
-			if venue, ok := venueMap[fetcher.VenueID()]; ok {
-				venue.Events = append(venue.Events, events...)
-			}
-
+			results[i] = fetchResult{venueID: fetcher.VenueID(), events: events}
 			return nil
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
 		return err
+	}
+
+	for _, r := range results {
+		if venue, ok := venueMap[r.venueID]; ok {
+			venue.Events = append(venue.Events, r.events...)
+		}
 	}
 
 	return nil

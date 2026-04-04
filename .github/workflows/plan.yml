@@ -50,9 +50,11 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Build and package Lambda
+        working-directory: .
         run: task package
 
       - name: Build and package weekly Lambda
+        working-directory: .
         run: task package-weekly
 
       - name: Terraform Plan
