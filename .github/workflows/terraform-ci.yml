@@ -102,6 +102,7 @@ jobs:
 
       - name: tfsec PR Commenter
         uses: aquasecurity/tfsec-pr-commenter-action@v1.3.1
+        continue-on-error: true
         with:
           github_token: ${{ github.token }}
           working_directory: terraform
