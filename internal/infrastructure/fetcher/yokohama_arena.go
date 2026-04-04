@@ -32,13 +32,13 @@ type yokohamaArenaEvent struct {
 	EvStart []string `json:"ev_start"`
 }
 
-func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
-	todayStr := today.Format("2006-01-02")
-	yearMonth := today.Format("200601")
+	target := date.In(jst)
+	targetStr := target.Format("2006-01-02")
+	yearMonth := target.Format("200601")
 
-	slog.Info("fetching yokohama arena events", "date", todayStr)
+	slog.Info("fetching yokohama arena events", "date", targetStr)
 
 	apiURL := fmt.Sprintf("%s/event/%s?_format=json", s.baseURL, yearMonth)
 
@@ -49,10 +49,10 @@ func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context) ([]event.Event, 
 
 	var events []event.Event
 	for _, raw := range rawEvents {
-		if raw.Path == "" || raw.Date1 != todayStr {
+		if raw.Path == "" || raw.Date1 != targetStr {
 			continue
 		}
-		events = append(events, s.buildEvent(raw, today))
+		events = append(events, s.buildEvent(raw, target))
 	}
 
 	slog.Info("fetched yokohama arena events", "count", len(events))

@@ -6,6 +6,11 @@ tasks:
     cmds:
       - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bootstrap ./cmd/lambda/
 
+  build-weekly:
+    desc: Build weekly Lambda binary for linux/arm64
+    cmds:
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bootstrap-weekly ./cmd/lambda-weekly/
+
   test:
     desc: Run all tests
     cmds:
@@ -51,6 +56,7 @@ tasks:
     desc: Verify build without producing binary
     cmds:
       - go build -o /dev/null ./cmd/lambda/
+      - go build -o /dev/null ./cmd/lambda-weekly/
 
   ci-check:
     desc: Run test, lint, goreg, and build checks in parallel (for local verification)
@@ -62,10 +68,16 @@ tasks:
     cmds:
       - zip -j lambda.zip bootstrap
 
+  package-weekly:
+    desc: Package weekly Lambda function into lambda-weekly.zip
+    deps: [build-weekly]
+    cmds:
+      - zip -j lambda-weekly.zip bootstrap-weekly
+
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -f bootstrap lambda.zip
+      - rm -f bootstrap bootstrap-weekly lambda.zip lambda-weekly.zip
 
   run-local:
     desc: Run locally and preview events (no Discord notification)
@@ -85,21 +97,21 @@ tasks:
 
   plan:
     desc: Run Terraform plan
-    deps: [package]
+    deps: [package, package-weekly]
     dir: terraform
     cmds:
       - terraform plan
 
   apply:
     desc: Apply Terraform changes
-    deps: [package]
+    deps: [package, package-weekly]
     dir: terraform
     cmds:
       - terraform apply
 
   apply-ci:
     desc: Apply Terraform changes with auto-approve (for CI/CD)
-    deps: [package]
+    deps: [package, package-weekly]
     dir: terraform
     cmds:
       - terraform apply -auto-approve
@@ -108,7 +120,9 @@ tasks:
     desc: Build, package, and deploy to AWS
     cmds:
       - task: build
+      - task: build-weekly
       - task: package
+      - task: package-weekly
       - task: apply
 
   destroy:

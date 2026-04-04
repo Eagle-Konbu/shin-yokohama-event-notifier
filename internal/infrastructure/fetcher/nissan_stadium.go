@@ -34,26 +34,26 @@ type eventCandidate struct {
 
 var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
 
-func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
+	target := date.In(jst)
 
-	slog.Info("fetching nissan stadium events", "date", today.Format("2006-01-02"))
+	slog.Info("fetching nissan stadium events", "date", target.Format("2006-01-02"))
 
-	candidates, err := s.fetchEventCandidates(ctx, today)
+	candidates, err := s.fetchEventCandidates(ctx, target)
 	if err != nil {
 		slog.Error("failed to fetch event candidates", "error", err)
 		return nil, fmt.Errorf("failed to fetch event candidates: %w", err)
 	}
 
 	if len(candidates) == 0 {
-		slog.Info("no event candidates found for today")
+		slog.Info("no event candidates found for date", "date", target.Format("2006-01-02"))
 		return []event.Event{}, nil
 	}
 
 	slog.Info("found event candidates", "candidates", candidates)
 
-	events, err := s.fetchEventDetails(ctx, candidates, today)
+	events, err := s.fetchEventDetails(ctx, candidates, target)
 	if err != nil {
 		slog.Error("failed to fetch event details", "error", err)
 		return nil, fmt.Errorf("failed to fetch event details: %w", err)

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,8 +38,8 @@ func NewMockEventFetcher(venueID event.VenueID) *MockEventFetcher {
 	return &MockEventFetcher{venueID: venueID}
 }
 
-func (m *MockEventFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
-	args := m.Called(ctx)
+func (m *MockEventFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
+	args := m.Called(ctx, date)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -76,9 +77,9 @@ func TestNewEventNotificationService(t *testing.T) {
 func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
-	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -110,9 +111,9 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -145,9 +146,9 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(arenaEvents, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(arenaEvents, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return(stadiumEvents, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -182,9 +183,9 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 10, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(arenaEvents, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return(stadiumEvents, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return(skateEvents, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(arenaEvents, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return(stadiumEvents, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return(skateEvents, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -217,9 +218,9 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -244,9 +245,9 @@ func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -279,9 +280,9 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -310,9 +311,9 @@ func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -343,9 +344,9 @@ func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -380,9 +381,9 @@ func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -401,9 +402,9 @@ func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
 func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
-	mockFetcher1.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -424,7 +425,7 @@ func TestNotifyTodayEvents_FetchError(t *testing.T) {
 	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, expectedErr)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return(nil, expectedErr)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -448,7 +449,7 @@ func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T)
 	fetchErr := errors.New("fetch error")
 	sendErr := errors.New("send error")
 
-	mockFetcher.On("FetchEvents", mock.Anything).Return(nil, fetchErr)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return(nil, fetchErr)
 	mockSender.On("Send", ctx, mock.Anything).Return(sendErr)
 
 	err := service.NotifyTodayEvents(ctx)
@@ -464,7 +465,7 @@ func TestNotifyTodayEvents_SendError(t *testing.T) {
 	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("send error")
 
-	mockFetcher.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 	mockSender.On("Send", ctx, mock.Anything).Return(expectedErr)
 
 	err := service.NotifyTodayEvents(ctx)
@@ -491,9 +492,9 @@ func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return(events, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -507,4 +508,159 @@ func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
 
 	arenaField := sentNotification.Fields()[0]
 	assert.Contains(t, arenaField.Value, "・イベントA\n・イベントB\n・イベントC")
+}
+
+// Weekly notification tests
+
+func TestNotifyWeeklyEvents_NoEvents(t *testing.T) {
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyWeeklyEvents(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, "📅 新横浜 週間イベント情報", sentNotification.Title())
+	assert.Equal(t, notification.ColorGreen, sentNotification.Color())
+	assert.Len(t, sentNotification.Fields(), 3)
+	for _, field := range sentNotification.Fields() {
+		assert.Equal(t, "今週の予定はありません", field.Value)
+	}
+}
+
+func TestNotifyWeeklyEvents_FetchError(t *testing.T) {
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	expectedErr := errors.New("fetch error")
+
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return(nil, expectedErr)
+
+	var sentNotification *notification.Notification
+	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
+		sentNotification = args.Get(1).(*notification.Notification)
+	}).Return(nil)
+
+	err := service.NotifyWeeklyEvents(ctx)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch events")
+	assert.ErrorIs(t, err, expectedErr)
+
+	require.NotNil(t, sentNotification)
+	assert.Equal(t, "❌ イベント取得エラー", sentNotification.Title())
+}
+
+// Tests for weekly formatting logic (direct unit tests of formatVenueWeeklyEvents)
+
+func TestFormatVenueWeeklyEvents_NoEvents(t *testing.T) {
+	svc := &EventNotificationService{}
+	result := svc.formatVenueWeeklyEvents(nil)
+	assert.Equal(t, "今週の予定はありません", result)
+}
+
+func TestFormatVenueWeeklyEvents_GroupedByDate(t *testing.T) {
+	svc := &EventNotificationService{}
+
+	jst := time.FixedZone("JST", 9*60*60)
+	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, jst) // Monday
+	day3 := time.Date(2026, 4, 8, 0, 0, 0, 0, jst) // Wednesday
+
+	events := []event.Event{
+		{
+			Title: "月曜イベント",
+			Date:  day1,
+			Schedules: []event.Schedule{
+				{StartTime: timePtr(time.Date(2026, 4, 6, 18, 0, 0, 0, jst))},
+			},
+		},
+		{
+			Title: "水曜イベント",
+			Date:  day3,
+		},
+	}
+
+	result := svc.formatVenueWeeklyEvents(events)
+
+	assert.Contains(t, result, "**4/6(月)**")
+	assert.Contains(t, result, "・**18:00開始** 月曜イベント")
+	assert.Contains(t, result, "**4/8(水)**")
+	assert.Contains(t, result, "・水曜イベント")
+	// Tuesday (4/7) has no events and should not appear
+	assert.NotContains(t, result, "4/7")
+	// Date header must appear before events of that date
+	assert.Less(t, strings.Index(result, "**4/6(月)**"), strings.Index(result, "**4/8(水)**"))
+}
+
+func TestFormatVenueWeeklyEvents_SortedByDateThenTime(t *testing.T) {
+	svc := &EventNotificationService{}
+
+	jst := time.FixedZone("JST", 9*60*60)
+	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, jst) // Monday
+	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, jst) // Tuesday
+
+	events := []event.Event{
+		{
+			Title: "夜イベント",
+			Date:  day1,
+			Schedules: []event.Schedule{
+				{StartTime: timePtr(time.Date(2026, 4, 6, 19, 0, 0, 0, jst))},
+			},
+		},
+		{
+			Title: "翌日イベント",
+			Date:  day2,
+		},
+		{
+			Title: "昼イベント",
+			Date:  day1,
+			Schedules: []event.Schedule{
+				{StartTime: timePtr(time.Date(2026, 4, 6, 14, 0, 0, 0, jst))},
+			},
+		},
+	}
+
+	result := svc.formatVenueWeeklyEvents(events)
+
+	day1Pos := strings.Index(result, "**4/6(月)**")
+	day2Pos := strings.Index(result, "**4/7(火)**")
+	lunchPos := strings.Index(result, "14:00開始")
+	eveningPos := strings.Index(result, "19:00開始")
+
+	assert.GreaterOrEqual(t, day1Pos, 0)
+	assert.GreaterOrEqual(t, day2Pos, 0)
+	assert.Less(t, day1Pos, day2Pos)
+	assert.Less(t, lunchPos, eveningPos)
+}
+
+func TestFormatVenueWeeklyEvents_WeekdayLabels(t *testing.T) {
+	svc := &EventNotificationService{}
+
+	jst := time.FixedZone("JST", 9*60*60)
+	// 2026-04-06 is Monday (月)
+	events := []event.Event{
+		{Title: "月", Date: time.Date(2026, 4, 6, 0, 0, 0, 0, jst)},
+		{Title: "火", Date: time.Date(2026, 4, 7, 0, 0, 0, 0, jst)},
+		{Title: "水", Date: time.Date(2026, 4, 8, 0, 0, 0, 0, jst)},
+		{Title: "木", Date: time.Date(2026, 4, 9, 0, 0, 0, 0, jst)},
+		{Title: "金", Date: time.Date(2026, 4, 10, 0, 0, 0, 0, jst)},
+		{Title: "土", Date: time.Date(2026, 4, 11, 0, 0, 0, 0, jst)},
+		{Title: "日", Date: time.Date(2026, 4, 12, 0, 0, 0, 0, jst)},
+	}
+
+	result := svc.formatVenueWeeklyEvents(events)
+
+	assert.Contains(t, result, "4/6(月)")
+	assert.Contains(t, result, "4/7(火)")
+	assert.Contains(t, result, "4/8(水)")
+	assert.Contains(t, result, "4/9(木)")
+	assert.Contains(t, result, "4/10(金)")
+	assert.Contains(t, result, "4/11(土)")
+	assert.Contains(t, result, "4/12(日)")
 }
