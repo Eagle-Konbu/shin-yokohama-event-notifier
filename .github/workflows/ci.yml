@@ -145,11 +145,14 @@ jobs:
           go-version: '1.25'
           cache: true
 
-      - name: Build Lambda binary
-        run: go build -o bootstrap cmd/lambda-daily/main.go
+      - name: Build daily Lambda binary
+        run: go build -o bootstrap-daily cmd/lambda-daily/main.go
 
-      - name: Verify binary exists
-        run: test -f bootstrap && test -x bootstrap
+      - name: Build weekly Lambda binary
+        run: go build -o bootstrap-weekly cmd/lambda-weekly/main.go
+
+      - name: Verify binaries exist
+        run: test -f bootstrap-daily && test -x bootstrap-daily && test -f bootstrap-weekly && test -x bootstrap-weekly
 
   tidy-check:
     name: Go mod tidy check
