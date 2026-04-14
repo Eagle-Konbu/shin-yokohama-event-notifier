@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
@@ -32,6 +33,9 @@ func main() {
 		fetcher.NewSkateCenterFetcher(),
 	}
 
+	jst := time.FixedZone("JST", 9*60*60)
+	today := time.Now().In(jst)
+
 	venues := event.NewAllVenues()
 	venueMap := make(map[event.VenueID]*event.Venue)
 	for _, v := range venues {
@@ -43,7 +47,7 @@ func main() {
 	for _, fetcher := range fetchers {
 		venue := venueMap[fetcher.VenueID()]
 
-		events, err := fetcher.FetchEvents(ctx)
+		events, err := fetcher.FetchEvents(ctx, today)
 
 		if err != nil {
 			fmt.Printf("[%s]\n", venue.DisplayName)

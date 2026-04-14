@@ -48,7 +48,7 @@ func TestSkateCenterFetcher_FetchEvents_SingleEvent(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -75,7 +75,7 @@ func TestSkateCenterFetcher_FetchEvents_MultipleEvents(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 2)
@@ -103,7 +103,7 @@ func TestSkateCenterFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), time.Now().In(jst))
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -114,7 +114,7 @@ func TestSkateCenterFetcher_FetchEvents_EmptyPage(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), time.Now())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -127,7 +127,7 @@ func TestSkateCenterFetcher_FetchEvents_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -142,7 +142,7 @@ func TestSkateCenterFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	events, err := scraper.FetchEvents(ctx)
+	events, err := scraper.FetchEvents(ctx, time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -155,7 +155,7 @@ func TestSkateCenterFetcher_FetchEvents_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -172,7 +172,7 @@ func TestSkateCenterFetcher_FetchEvents_NonEventType(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background())
+	events, err := scraper.FetchEvents(context.Background(), time.Now())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)

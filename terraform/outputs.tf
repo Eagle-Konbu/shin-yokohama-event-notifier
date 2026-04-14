@@ -1,16 +1,31 @@
-output "lambda_function_name" {
-  description = "Name of the Lambda function"
-  value       = aws_lambda_function.notification.function_name
+output "lambda_daily_function_name" {
+  description = "Name of the daily Lambda function"
+  value       = aws_lambda_function.notification_daily.function_name
 }
 
-output "lambda_function_arn" {
-  description = "ARN of the Lambda function"
-  value       = aws_lambda_function.notification.arn
+output "lambda_daily_function_arn" {
+  description = "ARN of the daily Lambda function"
+  value       = aws_lambda_function.notification_daily.arn
 }
 
-output "eventbridge_schedule_name" {
-  description = "Name of the EventBridge Scheduler schedule"
-  value       = aws_scheduler_schedule.schedule.name
+output "lambda_weekly_function_name" {
+  description = "Name of the weekly Lambda function"
+  value       = aws_lambda_function.notification_weekly.function_name
+}
+
+output "lambda_weekly_function_arn" {
+  description = "ARN of the weekly Lambda function"
+  value       = aws_lambda_function.notification_weekly.arn
+}
+
+output "eventbridge_schedule_daily_name" {
+  description = "Name of the daily EventBridge Scheduler schedule"
+  value       = aws_scheduler_schedule.schedule_daily.name
+}
+
+output "eventbridge_schedule_weekly_name" {
+  description = "Name of the weekly EventBridge Scheduler schedule"
+  value       = aws_scheduler_schedule.schedule_weekly.name
 }
 
 output "s3_bucket_name" {
@@ -18,9 +33,9 @@ output "s3_bucket_name" {
   value       = aws_s3_bucket.lambda_artifacts.id
 }
 
-output "cloudwatch_log_group" {
-  description = "CloudWatch log group name"
-  value       = aws_cloudwatch_log_group.lambda.name
+output "cloudwatch_log_group_daily" {
+  description = "CloudWatch log group name for the daily Lambda"
+  value       = aws_cloudwatch_log_group.lambda_daily.name
 }
 
 output "discord_webhook_secret_arn" {

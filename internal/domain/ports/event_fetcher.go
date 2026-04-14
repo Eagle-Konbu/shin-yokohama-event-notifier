@@ -2,11 +2,12 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 )
 
 type EventFetcher interface {
-	FetchEvents(ctx context.Context) ([]event.Event, error)
+	FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error)
 	VenueID() event.VenueID
 }

@@ -22,6 +22,12 @@ variable "lambda_timeout" {
   default     = 30
 }
 
+variable "lambda_weekly_timeout" {
+  description = "Timeout for weekly Lambda function in seconds"
+  type        = number
+  default     = 120
+}
+
 variable "schedule_expression" {
   description = "Amazon EventBridge Scheduler cron schedule expression (Asia/Tokyo timezone)"
   type        = string

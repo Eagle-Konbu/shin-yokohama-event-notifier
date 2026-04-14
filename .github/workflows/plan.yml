@@ -27,6 +27,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
       - name: Setup Task
         uses: go-task/setup-task@v1
 
@@ -43,8 +49,13 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      - name: Build and package Lambda
-        run: task package
+      - name: Build and package daily Lambda
+        working-directory: .
+        run: task package-daily
+
+      - name: Build and package weekly Lambda
+        working-directory: .
+        run: task package-weekly
 
       - name: Terraform Plan
         env:

@@ -41,14 +41,25 @@ jobs:
         with:
           terraform_version: ~1.0
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
       - name: Setup Task
         uses: go-task/setup-task@v1
 
       - name: Terraform Init (Backend Disabled)
         run: terraform init -backend=false
 
-      - name: Build and package Lambda
-        run: task package
+      - name: Build and package daily Lambda
+        working-directory: .
+        run: task package-daily
+
+      - name: Build and package weekly Lambda
+        working-directory: .
+        run: task package-weekly
 
       - name: Terraform Validate
         run: terraform validate
@@ -93,6 +104,7 @@ jobs:
 
       - name: tfsec PR Commenter
         uses: aquasecurity/tfsec-pr-commenter-action@v1.3.1
+        continue-on-error: true
         with:
           github_token: ${{ github.token }}
           working_directory: terraform

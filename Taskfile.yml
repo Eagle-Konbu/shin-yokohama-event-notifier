@@ -1,10 +1,17 @@
 version: '3'
 
 tasks:
-  build:
-    desc: Build Lambda binary for linux/arm64
+  build-daily:
+    desc: Build daily Lambda binary for linux/arm64
     cmds:
-      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bootstrap ./cmd/lambda/
+      - mkdir -p .build/daily
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o .build/daily/bootstrap ./cmd/lambda-daily/
+
+  build-weekly:
+    desc: Build weekly Lambda binary for linux/arm64
+    cmds:
+      - mkdir -p .build/weekly
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o .build/weekly/bootstrap ./cmd/lambda-weekly/
 
   test:
     desc: Run all tests
@@ -50,22 +57,30 @@ tasks:
   build-check:
     desc: Verify build without producing binary
     cmds:
-      - go build -o /dev/null ./cmd/lambda/
+      - go build -o /dev/null ./cmd/lambda-daily/
+      - go build -o /dev/null ./cmd/lambda-weekly/
 
   ci-check:
     desc: Run test, lint, goreg, and build checks in parallel (for local verification)
     deps: [test, lint, goreg, build-check]
 
-  package:
-    desc: Package Lambda function into lambda.zip
-    deps: [build]
+  package-daily:
+    desc: Package daily Lambda function into lambda-daily.zip
+    deps: [build-daily]
     cmds:
-      - zip -j lambda.zip bootstrap
+      - cd .build/daily && zip -j ../../lambda-daily.zip bootstrap
+
+  package-weekly:
+    desc: Package weekly Lambda function into lambda-weekly.zip
+    deps: [build-weekly]
+    cmds:
+      - cd .build/weekly && zip -j ../../lambda-weekly.zip bootstrap
 
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -f bootstrap lambda.zip
+      - rm -f lambda-daily.zip lambda-weekly.zip
+      - rm -rf .build
 
   run-local:
     desc: Run locally and preview events (no Discord notification)
@@ -85,21 +100,21 @@ tasks:
 
   plan:
     desc: Run Terraform plan
-    deps: [package]
+    deps: [package-daily, package-weekly]
     dir: terraform
     cmds:
       - terraform plan
 
   apply:
     desc: Apply Terraform changes
-    deps: [package]
+    deps: [package-daily, package-weekly]
     dir: terraform
     cmds:
       - terraform apply
 
   apply-ci:
     desc: Apply Terraform changes with auto-approve (for CI/CD)
-    deps: [package]
+    deps: [package-daily, package-weekly]
     dir: terraform
     cmds:
       - terraform apply -auto-approve
@@ -107,8 +122,10 @@ tasks:
   deploy:
     desc: Build, package, and deploy to AWS
     cmds:
-      - task: build
-      - task: package
+      - task: build-daily
+      - task: build-weekly
+      - task: package-daily
+      - task: package-weekly
       - task: apply
 
   destroy:

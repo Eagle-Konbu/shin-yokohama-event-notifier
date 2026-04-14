@@ -38,12 +38,12 @@ type jsonLDLocation struct {
 	Name string `json:"name"`
 }
 
-func (s *SkateCenterFetcher) FetchEvents(ctx context.Context) ([]event.Event, error) {
+func (s *SkateCenterFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
-	today := time.Now().In(jst)
-	todayStr := today.Format("2006-01-02")
+	target := date.In(jst)
+	targetStr := target.Format("2006-01-02")
 
-	slog.Info("fetching skate center events", "date", todayStr)
+	slog.Info("fetching skate center events", "date", targetStr)
 
 	htmlContent, err := s.fetchHTML(ctx)
 	if err != nil {
@@ -62,10 +62,10 @@ func (s *SkateCenterFetcher) FetchEvents(ctx context.Context) ([]event.Event, er
 			slog.Error("failed to parse startDate", "startDate", raw.StartDate, "err", err)
 			continue
 		}
-		if t.In(jst).Format("2006-01-02") != todayStr {
+		if t.In(jst).Format("2006-01-02") != targetStr {
 			continue
 		}
-		events = append(events, buildSkateCenterEvent(raw, today))
+		events = append(events, buildSkateCenterEvent(raw, target))
 	}
 
 	slog.Info("fetched skate center events", "count", len(events))

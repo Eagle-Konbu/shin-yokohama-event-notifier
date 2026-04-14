@@ -30,8 +30,11 @@ jobs:
       - name: Run tests
         run: task test
 
-      - name: Build and package Lambda
-        run: task package
+      - name: Build and package daily Lambda
+        run: task package-daily
+
+      - name: Build and package weekly Lambda
+        run: task package-weekly
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

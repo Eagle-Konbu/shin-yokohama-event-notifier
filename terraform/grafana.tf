@@ -99,7 +99,7 @@ resource "grafana_data_source" "cloudwatch" {
 resource "grafana_dashboard" "lambda" {
   config_json = jsonencode({
     title       = "Lambda: ${var.project_name}"
-    description = "Monitoring dashboard for ${local.function_name}"
+    description = "Monitoring dashboard for ${local.function_name_daily}"
     editable    = false
     timezone    = "Asia/Tokyo"
 
@@ -130,7 +130,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Invocations"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Sum"
             period    = "86400"
@@ -169,7 +169,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Errors"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Sum"
             period    = "86400"
@@ -209,7 +209,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Errors"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Sum"
             period    = "86400"
@@ -222,7 +222,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Invocations"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Sum"
             period    = "86400"
@@ -276,7 +276,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Duration"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Average"
             period    = "86400"
@@ -288,7 +288,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Duration"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Maximum"
             period    = "86400"
@@ -300,7 +300,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Duration"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "p99"
             period    = "86400"
@@ -337,7 +337,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "Throttles"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Sum"
             period    = "86400"
@@ -377,7 +377,7 @@ resource "grafana_dashboard" "lambda" {
             namespace  = "AWS/Lambda"
             metricName = "ConcurrentExecutions"
             dimensions = {
-              FunctionName = [local.function_name]
+              FunctionName = [local.function_name_daily]
             }
             statistic = "Maximum"
             period    = "86400"
