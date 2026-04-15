@@ -49,7 +49,7 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 		return fmt.Errorf("failed to fetch events: %w", err)
 	}
 
-	notif := s.buildNotification(venues)
+	notif := s.buildDailyNotification(venues)
 
 	if err := s.notificationSender.Send(ctx, notif); err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
@@ -129,7 +129,7 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 	return nil
 }
 
-func (s *EventNotificationService) buildNotification(venues []*event.Venue) *notification.Notification {
+func (s *EventNotificationService) buildDailyNotification(venues []*event.Venue) *notification.Notification {
 	color := s.determineColor(venues)
 	notif := notification.NewNotification(
 		"📅 新横浜 イベント情報",
