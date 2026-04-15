@@ -91,7 +91,6 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, sentNotification)
 	assert.Equal(t, "📅 新横浜 イベント情報", sentNotification.Title())
-	assert.Equal(t, "本日のイベント情報をお知らせします。", sentNotification.Description())
 	assert.Equal(t, notification.ColorGreen, sentNotification.Color())
 	assert.Len(t, sentNotification.Fields(), 3)
 	for _, field := range sentNotification.Fields() {

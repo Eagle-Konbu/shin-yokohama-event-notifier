@@ -133,7 +133,7 @@ func (s *EventNotificationService) buildDailyNotification(venues []*event.Venue)
 	color := s.determineColor(venues)
 	notif := notification.NewNotification(
 		"📅 新横浜 イベント情報",
-		"本日のイベント情報をお知らせします。",
+		"",
 		color,
 	)
 
@@ -148,15 +148,9 @@ func (s *EventNotificationService) buildDailyNotification(venues []*event.Venue)
 
 func (s *EventNotificationService) buildWeeklyNotification(venues []*event.Venue, startDate time.Time) *notification.Notification {
 	color := s.determineColor(venues)
-	endDate := startDate.AddDate(0, 0, 6)
-	description := fmt.Sprintf(
-		"%s 〜 %s のイベント情報をお知らせします。",
-		startDate.Format("1/2"),
-		endDate.Format("1/2"),
-	)
 	notif := notification.NewNotification(
 		"📅 新横浜 週間イベント情報",
-		description,
+		"",
 		color,
 	)
 

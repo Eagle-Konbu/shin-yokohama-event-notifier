@@ -11,7 +11,6 @@ Daily event information is sent to Discord using the Embed format for a well-for
 ## Format Specification
 
 - **Title**: 📅 新横浜 イベント情報
-- **Description**: 本日のイベント情報をお知らせします。
 - **Color**: Changes based on the number of venues with events
   - 0 venues: Green (ColorGreen)
   - 1 venue: Yellow (ColorYellow)
@@ -33,7 +32,6 @@ Venues with no events display "本日の予定はありません" (No schedule f
   "embeds": [
     {
       "title": "📅 新横浜 イベント情報",
-      "description": "本日のイベント情報をお知らせします。",
       "color": 15158332,
       "fields": [
         {
