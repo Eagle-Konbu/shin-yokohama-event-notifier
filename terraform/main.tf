@@ -1,6 +1,7 @@
 locals {
   function_name_daily  = "${var.project_name}-lambda-daily"
   function_name_weekly = "${var.project_name}-lambda-weekly"
+  state_machine_name   = "${var.project_name}-notification"
   bucket_name          = "${var.project_name}-artifacts"
 
   common_tags = merge(
@@ -190,6 +191,147 @@ resource "aws_lambda_function" "notification_weekly" {
   tags = local.common_tags
 }
 
+# -----------------------------------------------------------------------------
+# Step Functions
+# -----------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "sfn" {
+  name              = "/aws/states/${local.state_machine_name}"
+  retention_in_days = var.log_retention_days
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role" "sfn_execution" {
+  name = "${var.project_name}-sfn-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "states.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy" "sfn_lambda_invoke" {
+  name = "${var.project_name}-sfn-lambda-invoke"
+  role = aws_iam_role.sfn_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"]
+        Resource = [
+          aws_lambda_function.notification_daily.arn,
+          aws_lambda_function.notification_weekly.arn,
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "sfn_logging" {
+  name = "${var.project_name}-sfn-logging"
+  role = aws_iam_role.sfn_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogDelivery",
+          "logs:CreateLogStream",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutLogEvents",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_sfn_state_machine" "notification" {
+  name     = local.state_machine_name
+  role_arn = aws_iam_role.sfn_execution.arn
+
+  definition = jsonencode({
+    Comment       = "Shin-Yokohama event notification workflow. Runs weekly (Monday only) then daily."
+    QueryLanguage = "JSONata"
+    StartAt       = "CheckDayOfWeek"
+    States = {
+      CheckDayOfWeek = {
+        Type    = "Pass"
+        Comment = "Calculates day-of-week in JST from current UTC time. 32400000 = UTC+9 (JST) offset in milliseconds, 86400000 = milliseconds per day. Result mapping is Sunday=0, Monday=1, ... Saturday=6; IsMonday checks for 1."
+        Assign = {
+          dayOfWeek = "{% ($floor(($toMillis($now()) + 32400000) / 86400000) + 4) % 7 %}"
+        }
+        Next = "IsMonday"
+      }
+      IsMonday = {
+        Type = "Choice"
+        Choices = [
+          {
+            Condition = "{% $dayOfWeek = 1 %}"
+            Next      = "RunWeekly"
+          }
+        ]
+        Default = "RunDaily"
+      }
+      RunWeekly = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+        Arguments = {
+          FunctionName = aws_lambda_function.notification_weekly.arn
+        }
+        Catch = [
+          {
+            ErrorEquals = ["States.ALL"]
+            Next        = "RunDaily"
+          }
+        ]
+        Next = "RunDaily"
+      }
+      RunDaily = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+        Arguments = {
+          FunctionName = aws_lambda_function.notification_daily.arn
+        }
+        End = true
+      }
+    }
+  })
+
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.sfn.arn}:*"
+    include_execution_data = false
+    level                  = "ERROR"
+  }
+
+  tags = local.common_tags
+}
+
+# -----------------------------------------------------------------------------
+# EventBridge Scheduler
+# -----------------------------------------------------------------------------
+
 resource "aws_iam_role" "scheduler_execution" {
   name = "${var.project_name}-scheduler-execution-role"
 
@@ -209,28 +351,25 @@ resource "aws_iam_role" "scheduler_execution" {
   tags = local.common_tags
 }
 
-resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
-  name = "${var.project_name}-scheduler-lambda-invoke"
+resource "aws_iam_role_policy" "scheduler_sfn_start" {
+  name = "${var.project_name}-scheduler-sfn-start"
   role = aws_iam_role.scheduler_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["lambda:InvokeFunction"]
-        Resource = [
-          aws_lambda_function.notification_daily.arn,
-          aws_lambda_function.notification_weekly.arn,
-        ]
+        Effect   = "Allow"
+        Action   = ["states:StartExecution"]
+        Resource = aws_sfn_state_machine.notification.arn
       }
     ]
   })
 }
 
-resource "aws_scheduler_schedule" "schedule_daily" {
-  name        = "${var.project_name}-schedule-daily"
-  description = "Trigger daily Lambda function at 6AM JST"
+resource "aws_scheduler_schedule" "notification" {
+  name        = "${var.project_name}-schedule"
+  description = "Trigger notification Step Functions workflow at 6AM JST daily"
 
   flexible_time_window {
     mode = "OFF"
@@ -240,24 +379,7 @@ resource "aws_scheduler_schedule" "schedule_daily" {
   schedule_expression_timezone = "Asia/Tokyo"
 
   target {
-    arn      = aws_lambda_function.notification_daily.arn
-    role_arn = aws_iam_role.scheduler_execution.arn
-  }
-}
-
-resource "aws_scheduler_schedule" "schedule_weekly" {
-  name        = "${var.project_name}-schedule-weekly"
-  description = "Trigger weekly Lambda function every Monday at 6AM JST"
-
-  flexible_time_window {
-    mode = "OFF"
-  }
-
-  schedule_expression          = "cron(0 6 ? * MON *)"
-  schedule_expression_timezone = "Asia/Tokyo"
-
-  target {
-    arn      = aws_lambda_function.notification_weekly.arn
+    arn      = aws_sfn_state_machine.notification.arn
     role_arn = aws_iam_role.scheduler_execution.arn
   }
 }
