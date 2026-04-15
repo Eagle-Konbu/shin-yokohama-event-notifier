@@ -18,14 +18,19 @@ output "lambda_weekly_function_arn" {
   value       = aws_lambda_function.notification_weekly.arn
 }
 
-output "eventbridge_schedule_daily_name" {
-  description = "Name of the daily EventBridge Scheduler schedule"
-  value       = aws_scheduler_schedule.schedule_daily.name
+output "eventbridge_schedule_name" {
+  description = "Name of the EventBridge Scheduler schedule"
+  value       = aws_scheduler_schedule.notification.name
 }
 
-output "eventbridge_schedule_weekly_name" {
-  description = "Name of the weekly EventBridge Scheduler schedule"
-  value       = aws_scheduler_schedule.schedule_weekly.name
+output "step_function_name" {
+  description = "Name of the Step Functions state machine"
+  value       = aws_sfn_state_machine.notification.name
+}
+
+output "step_function_arn" {
+  description = "ARN of the Step Functions state machine"
+  value       = aws_sfn_state_machine.notification.arn
 }
 
 output "s3_bucket_name" {

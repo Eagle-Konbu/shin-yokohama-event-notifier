@@ -31,20 +31,25 @@ This Terraform configuration manages AWS infrastructure for the shin-yokohama-ev
 | <a name="input_grafana_url"></a> [grafana\_url](#input\_grafana\_url) | Grafana Cloud stack URL (e.g., https://your-stack.grafana.net) | `string` | n/a | yes |
 | <a name="input_lambda_memory_size"></a> [lambda\_memory\_size](#input\_lambda\_memory\_size) | Memory size for Lambda function in MB | `number` | `128` | no |
 | <a name="input_lambda_timeout"></a> [lambda\_timeout](#input\_lambda\_timeout) | Timeout for Lambda function in seconds | `number` | `30` | no |
+| <a name="input_lambda_weekly_timeout"></a> [lambda\_weekly\_timeout](#input\_lambda\_weekly\_timeout) | Timeout for weekly Lambda function in seconds | `number` | `120` | no |
 | <a name="input_log_retention_days"></a> [log\_retention\_days](#input\_log\_retention\_days) | CloudWatch Logs retention period in days | `number` | `7` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name used for resource naming | `string` | `"shin-yokohama-event-notifier"` | no |
-| <a name="input_schedule_expression"></a> [schedule\_expression](#input\_schedule\_expression) | Amazon EventBridge Scheduler cron schedule expression (Asia/Tokyo timezone) | `string` | `"cron(0 6 * * ? *)"` | no |
+| <a name="input_schedule_expression"></a> [schedule\_expression](#input\_schedule\_expression) | Amazon EventBridge Scheduler cron expression for triggering the notification workflow (Asia/Tokyo timezone) | `string` | `"cron(0 6 * * ? *)"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to resources | `map(string)` | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_cloudwatch_log_group"></a> [cloudwatch\_log\_group](#output\_cloudwatch\_log\_group) | CloudWatch log group name |
+| <a name="output_cloudwatch_log_group_daily"></a> [cloudwatch\_log\_group\_daily](#output\_cloudwatch\_log\_group\_daily) | CloudWatch log group name for the daily Lambda |
 | <a name="output_discord_webhook_secret_arn"></a> [discord\_webhook\_secret\_arn](#output\_discord\_webhook\_secret\_arn) | ARN of the Secrets Manager secret for Discord webhook URL |
 | <a name="output_eventbridge_schedule_name"></a> [eventbridge\_schedule\_name](#output\_eventbridge\_schedule\_name) | Name of the EventBridge Scheduler schedule |
 | <a name="output_grafana_dashboard_url"></a> [grafana\_dashboard\_url](#output\_grafana\_dashboard\_url) | URL of the Grafana Lambda monitoring dashboard |
-| <a name="output_lambda_function_arn"></a> [lambda\_function\_arn](#output\_lambda\_function\_arn) | ARN of the Lambda function |
-| <a name="output_lambda_function_name"></a> [lambda\_function\_name](#output\_lambda\_function\_name) | Name of the Lambda function |
+| <a name="output_lambda_daily_function_arn"></a> [lambda\_daily\_function\_arn](#output\_lambda\_daily\_function\_arn) | ARN of the daily Lambda function |
+| <a name="output_lambda_daily_function_name"></a> [lambda\_daily\_function\_name](#output\_lambda\_daily\_function\_name) | Name of the daily Lambda function |
+| <a name="output_lambda_weekly_function_arn"></a> [lambda\_weekly\_function\_arn](#output\_lambda\_weekly\_function\_arn) | ARN of the weekly Lambda function |
+| <a name="output_lambda_weekly_function_name"></a> [lambda\_weekly\_function\_name](#output\_lambda\_weekly\_function\_name) | Name of the weekly Lambda function |
 | <a name="output_s3_bucket_name"></a> [s3\_bucket\_name](#output\_s3\_bucket\_name) | Name of the S3 bucket for Lambda artifacts |
+| <a name="output_step_function_arn"></a> [step\_function\_arn](#output\_step\_function\_arn) | ARN of the Step Functions state machine |
+| <a name="output_step_function_name"></a> [step\_function\_name](#output\_step\_function\_name) | Name of the Step Functions state machine |
 <!-- END_TF_DOCS -->

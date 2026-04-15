@@ -29,7 +29,7 @@ variable "lambda_weekly_timeout" {
 }
 
 variable "schedule_expression" {
-  description = "Amazon EventBridge Scheduler cron schedule expression (Asia/Tokyo timezone)"
+  description = "Amazon EventBridge Scheduler cron expression for triggering the notification workflow (Asia/Tokyo timezone)"
   type        = string
   default     = "cron(0 6 * * ? *)" # Daily at 6AM JST
 }

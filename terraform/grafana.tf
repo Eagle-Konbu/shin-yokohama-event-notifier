@@ -391,6 +391,147 @@ resource "grafana_dashboard" "lambda" {
             }
           }
         }
+      },
+      {
+        id    = 7
+        title = "Step Functions: Executions"
+        type  = "timeseries"
+        gridPos = {
+          h = 8
+          w = 8
+          x = 0
+          y = 24
+        }
+        datasource = {
+          type = "cloudwatch"
+          uid  = grafana_data_source.cloudwatch.uid
+        }
+        targets = [
+          {
+            refId      = "A"
+            namespace  = "AWS/States"
+            metricName = "ExecutionsStarted"
+            dimensions = {
+              StateMachineArn = [aws_sfn_state_machine.notification.arn]
+            }
+            statistic = "Sum"
+            period    = "86400"
+            region    = var.aws_region
+            label     = "Started"
+          },
+          {
+            refId      = "B"
+            namespace  = "AWS/States"
+            metricName = "ExecutionsSucceeded"
+            dimensions = {
+              StateMachineArn = [aws_sfn_state_machine.notification.arn]
+            }
+            statistic = "Sum"
+            period    = "86400"
+            region    = var.aws_region
+            label     = "Succeeded"
+          }
+        ]
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic"
+            }
+            custom = {
+              drawStyle   = "bars"
+              fillOpacity = 50
+            }
+          }
+        }
+      },
+      {
+        id    = 8
+        title = "Step Functions: Failures"
+        type  = "timeseries"
+        gridPos = {
+          h = 8
+          w = 8
+          x = 8
+          y = 24
+        }
+        datasource = {
+          type = "cloudwatch"
+          uid  = grafana_data_source.cloudwatch.uid
+        }
+        targets = [
+          {
+            refId      = "A"
+            namespace  = "AWS/States"
+            metricName = "ExecutionsFailed"
+            dimensions = {
+              StateMachineArn = [aws_sfn_state_machine.notification.arn]
+            }
+            statistic = "Sum"
+            period    = "86400"
+            region    = var.aws_region
+          }
+        ]
+        fieldConfig = {
+          defaults = {
+            color = {
+              fixedColor = "red"
+              mode       = "fixed"
+            }
+            custom = {
+              drawStyle   = "bars"
+              fillOpacity = 50
+            }
+          }
+        }
+      },
+      {
+        id    = 9
+        title = "Step Functions: Duration"
+        type  = "timeseries"
+        gridPos = {
+          h = 8
+          w = 8
+          x = 16
+          y = 24
+        }
+        datasource = {
+          type = "cloudwatch"
+          uid  = grafana_data_source.cloudwatch.uid
+        }
+        targets = [
+          {
+            refId      = "A"
+            namespace  = "AWS/States"
+            metricName = "ExecutionTime"
+            dimensions = {
+              StateMachineArn = [aws_sfn_state_machine.notification.arn]
+            }
+            statistic = "Average"
+            period    = "86400"
+            region    = var.aws_region
+            label     = "Average"
+          },
+          {
+            refId      = "B"
+            namespace  = "AWS/States"
+            metricName = "ExecutionTime"
+            dimensions = {
+              StateMachineArn = [aws_sfn_state_machine.notification.arn]
+            }
+            statistic = "Maximum"
+            period    = "86400"
+            region    = var.aws_region
+            label     = "Maximum"
+          }
+        ]
+        fieldConfig = {
+          defaults = {
+            unit = "ms"
+            color = {
+              mode = "palette-classic"
+            }
+          }
+        }
       }
     ]
   })
