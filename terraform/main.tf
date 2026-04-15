@@ -277,7 +277,8 @@ resource "aws_sfn_state_machine" "notification" {
     StartAt       = "CheckDayOfWeek"
     States = {
       CheckDayOfWeek = {
-        Type = "Pass"
+        Type    = "Pass"
+        Comment = "Calculates day-of-week in JST from current UTC time. 32400000 = UTC+9 (JST) offset in milliseconds, 86400000 = milliseconds per day. Result mapping is Sunday=0, Monday=1, ... Saturday=6; IsMonday checks for 1."
         Assign = {
           dayOfWeek = "{% ($floor(($toMillis($now()) + 32400000) / 86400000) + 4) % 7 %}"
         }
