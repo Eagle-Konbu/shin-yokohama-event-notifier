@@ -5,9 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/config"
 )
 
 func TestBuildEventService_Success(t *testing.T) {
