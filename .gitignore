@@ -1,6 +1,8 @@
 # Lambda build artifacts
 bootstrap
 lambda.zip
+lambda-daily
+lambda-weekly
 *.zip
 
 # Terraform state files
