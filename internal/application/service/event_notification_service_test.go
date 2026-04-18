@@ -91,6 +91,7 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, sentNotification)
 	assert.Equal(t, "📅 新横浜 イベント情報", sentNotification.Title())
+	assert.Equal(t, "本日の開催イベントはありません", sentNotification.Description())
 	assert.Equal(t, notification.ColorGreen, sentNotification.Color())
 	assert.Len(t, sentNotification.Fields(), 3)
 	for _, field := range sentNotification.Fields() {
@@ -123,6 +124,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, sentNotification)
+	assert.Equal(t, "本日のイベント数: 1件", sentNotification.Description())
 	assert.Equal(t, notification.ColorYellow, sentNotification.Color())
 
 	arenaField := sentNotification.Fields()[0]
@@ -158,6 +160,7 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, sentNotification)
+	assert.Equal(t, "本日のイベント数: 2件", sentNotification.Description())
 	assert.Equal(t, notification.ColorRed, sentNotification.Color())
 }
 
@@ -195,6 +198,7 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, sentNotification)
+	assert.Equal(t, "本日のイベント数: 3件", sentNotification.Description())
 	assert.Equal(t, notification.ColorRed, sentNotification.Color())
 }
 
