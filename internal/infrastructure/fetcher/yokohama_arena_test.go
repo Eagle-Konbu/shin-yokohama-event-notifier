@@ -49,7 +49,7 @@ func TestYokohamaArenaFetcher_FetchEvents_SingleEventSingleTime(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -81,7 +81,7 @@ func TestYokohamaArenaFetcher_FetchEvents_SingleEventMultipleTimes(t *testing.T)
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -121,7 +121,7 @@ func TestYokohamaArenaFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now().In(jst))
+	events, err := scraper.FetchEvents(context.Background(), time.Now().In(jst), time.Now().In(jst))
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -144,7 +144,7 @@ func TestYokohamaArenaFetcher_FetchEvents_EmptyPath(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -155,7 +155,7 @@ func TestYokohamaArenaFetcher_FetchEvents_EmptyResponse(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -168,7 +168,7 @@ func TestYokohamaArenaFetcher_FetchEvents_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -183,7 +183,7 @@ func TestYokohamaArenaFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	events, err := scraper.FetchEvents(ctx, time.Now())
+	events, err := scraper.FetchEvents(ctx, time.Now(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -206,7 +206,7 @@ func TestYokohamaArenaFetcher_FetchEvents_NoStartTime(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -234,7 +234,7 @@ func TestYokohamaArenaFetcher_FetchEvents_NoTimes(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -263,7 +263,7 @@ func TestYokohamaArenaFetcher_FetchEvents_MixedTypeFieldsIgnored(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -287,7 +287,7 @@ func TestYokohamaArenaFetcher_FetchEvents_FullwidthColon(t *testing.T) {
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)

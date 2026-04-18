@@ -34,26 +34,27 @@ type eventCandidate struct {
 
 var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
 
-func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
+func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, from, to time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
-	target := date.In(jst)
+	from = from.In(jst)
+	to = to.In(jst)
 
-	slog.Info("fetching nissan stadium events", "date", target.Format("2006-01-02"))
+	slog.Info("fetching nissan stadium events", "from", from.Format("2006-01-02"), "to", to.Format("2006-01-02"))
 
-	candidates, err := s.fetchEventCandidates(ctx, target)
+	candidates, err := s.fetchEventCandidatesForRange(ctx, from, to)
 	if err != nil {
 		slog.Error("failed to fetch event candidates", "error", err)
 		return nil, fmt.Errorf("failed to fetch event candidates: %w", err)
 	}
 
 	if len(candidates) == 0 {
-		slog.Info("no event candidates found for date", "date", target.Format("2006-01-02"))
+		slog.Info("no event candidates found", "from", from.Format("2006-01-02"), "to", to.Format("2006-01-02"))
 		return []event.Event{}, nil
 	}
 
 	slog.Info("found event candidates", "candidates", candidates)
 
-	events, err := s.fetchEventDetails(ctx, candidates, target)
+	events, err := s.fetchEventDetails(ctx, candidates, from)
 	if err != nil {
 		slog.Error("failed to fetch event details", "error", err)
 		return nil, fmt.Errorf("failed to fetch event details: %w", err)
@@ -64,16 +65,36 @@ func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, date time.Time) 
 	return events, nil
 }
 
-func (s *NissanStadiumFetcher) fetchEventCandidates(ctx context.Context, today time.Time) ([]eventCandidate, error) {
+func (s *NissanStadiumFetcher) fetchEventCandidatesForRange(ctx context.Context, from, to time.Time) ([]eventCandidate, error) {
+	crossMonth := from.Year() != to.Year() || from.Month() != to.Month()
+
+	candidates, err := s.fetchEventCandidatesForMonth(ctx, from, to, s.baseURL+"/calendar/")
+	if err != nil {
+		return nil, err
+	}
+
+	if crossMonth {
+		nextMonthCandidates, err := s.fetchEventCandidatesForMonth(ctx, from, to, s.baseURL+"/calendar/?m=x")
+		if err != nil {
+			return nil, err
+		}
+		candidates = append(candidates, nextMonthCandidates...)
+	}
+
+	return candidates, nil
+}
+
+func (s *NissanStadiumFetcher) fetchEventCandidatesForMonth(ctx context.Context, from, to time.Time, calendarURL string) ([]eventCandidate, error) {
 	c := colly.NewCollector()
 	c.SetRequestTimeout(10 * time.Second)
 
 	var candidates []eventCandidate
 	var currentDate int
-	targetDay := today.Day()
+
+	targetDays := buildTargetDays(from, to)
 
 	c.OnHTML("#areacontents01 > div:nth-child(2) > table > tbody tr", func(row *colly.HTMLElement) {
-		if candidate, ok := s.parseCalendarRow(row, &currentDate, targetDay); ok {
+		if candidate, ok := s.parseCalendarRow(row, &currentDate, targetDays); ok {
 			candidates = append(candidates, candidate)
 		}
 	})
@@ -92,7 +113,6 @@ func (s *NissanStadiumFetcher) fetchEventCandidates(ctx context.Context, today t
 		}
 	})
 
-	calendarURL := s.baseURL + "/calendar/"
 	slog.Debug("visiting calendar page", "url", calendarURL)
 
 	if err := c.Visit(calendarURL); err != nil {
@@ -108,7 +128,15 @@ func (s *NissanStadiumFetcher) fetchEventCandidates(ctx context.Context, today t
 	return candidates, nil
 }
 
-func (s *NissanStadiumFetcher) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDay int) (eventCandidate, bool) {
+func buildTargetDays(from, to time.Time) map[int]bool {
+	days := make(map[int]bool)
+	for d := from; !d.After(to); d = d.AddDate(0, 0, 1) {
+		days[d.Day()] = true
+	}
+	return days
+}
+
+func (s *NissanStadiumFetcher) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDays map[int]bool) (eventCandidate, bool) {
 	if dateStr := row.ChildText("th:nth-child(1)"); dateStr != "" {
 		var date int
 		if _, err := fmt.Sscanf(dateStr, "%d", &date); err == nil {
@@ -116,7 +144,7 @@ func (s *NissanStadiumFetcher) parseCalendarRow(row *colly.HTMLElement, currentD
 		}
 	}
 
-	if *currentDate != targetDay {
+	if !targetDays[*currentDate] {
 		return eventCandidate{}, false
 	}
 

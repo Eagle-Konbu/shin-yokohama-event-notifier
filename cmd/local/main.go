@@ -47,7 +47,7 @@ func main() {
 	for _, fetcher := range fetchers {
 		venue := venueMap[fetcher.VenueID()]
 
-		events, err := fetcher.FetchEvents(ctx, today)
+		events, err := fetcher.FetchEvents(ctx, today, today)
 
 		if err != nil {
 			fmt.Printf("[%s]\n", venue.DisplayName)
