@@ -1,7 +1,9 @@
-# Lambda build artifacts
+# Build artifacts
 bootstrap
+local
 lambda.zip
 *.zip
+.build/
 
 # Terraform state files
 *.tfstate
