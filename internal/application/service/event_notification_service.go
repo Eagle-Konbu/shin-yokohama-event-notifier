@@ -109,7 +109,7 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 		eg.Go(func() error {
 			events, err := fetcher.FetchEvents(ctx, date)
 			if err != nil {
-				return err
+				return fmt.Errorf("fetch events for venue %s: %w", fetcher.VenueID(), err)
 			}
 			results[i] = fetchResult{venueID: fetcher.VenueID(), events: events}
 			return nil
@@ -117,7 +117,7 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 	}
 
 	if err := eg.Wait(); err != nil {
-		return err
+		return fmt.Errorf("fetch all events: %w", err)
 	}
 
 	for _, r := range results {

@@ -100,7 +100,7 @@ func (s *NissanStadiumFetcher) fetchEventCandidates(ctx context.Context, today t
 	}
 
 	if visitErr != nil {
-		return nil, visitErr
+		return nil, fmt.Errorf("fetch nissan stadium calendar: %w", visitErr)
 	}
 
 	slog.Debug("calendar scraping completed", "candidates", len(candidates))
@@ -150,7 +150,7 @@ func (s *NissanStadiumFetcher) fetchEventDetails(ctx context.Context, candidates
 		candidate := candidate
 		eg.Go(func() error {
 			if err := sem.Acquire(ctx, 1); err != nil {
-				return err
+				return fmt.Errorf("acquire semaphore for event detail fetch: %w", err)
 			}
 			defer sem.Release(1)
 
@@ -177,7 +177,7 @@ func (s *NissanStadiumFetcher) fetchEventDetails(ctx context.Context, candidates
 	}
 
 	if err := eg.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetch nissan stadium event details: %w", err)
 	}
 
 	if len(results) == 0 && errorCount > 0 {
@@ -227,7 +227,7 @@ func (s *NissanStadiumFetcher) fetchEventDetail(ctx context.Context, candidate e
 	}
 
 	if visitErr != nil {
-		return event.Event{}, visitErr
+		return event.Event{}, fmt.Errorf("fetch nissan stadium event detail %s: %w", candidate.url, visitErr)
 	}
 
 	return s.buildEventFromFields(fields, candidate, today)
