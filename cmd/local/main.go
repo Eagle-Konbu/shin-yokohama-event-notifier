@@ -10,6 +10,8 @@ import (
 	"sort"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/application/service"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
@@ -42,21 +44,33 @@ func main() {
 		venueMap[v.ID] = v
 	}
 
+	type fetchResult struct {
+		venueID event.VenueID
+		events  []event.Event
+		err     error
+	}
+	results := make([]fetchResult, len(fetchers))
+
+	var eg errgroup.Group
+	for i, f := range fetchers {
+		eg.Go(func() error {
+			events, err := f.FetchEvents(ctx, today)
+			results[i] = fetchResult{venueID: f.VenueID(), events: events, err: err}
+			return nil
+		})
+	}
+	eg.Wait()
+
 	var hasError bool
-
-	for _, fetcher := range fetchers {
-		venue := venueMap[fetcher.VenueID()]
-
-		events, err := fetcher.FetchEvents(ctx, today)
-
-		if err != nil {
+	for _, r := range results {
+		venue := venueMap[r.venueID]
+		if r.err != nil {
 			fmt.Printf("[%s]\n", venue.DisplayName)
-			fmt.Printf("  error: %v\n\n", err)
+			fmt.Printf("  error: %v\n\n", r.err)
 			hasError = true
 			continue
 		}
-
-		venue.Events = events
+		venue.Events = r.events
 		printVenue(venue)
 	}
 
