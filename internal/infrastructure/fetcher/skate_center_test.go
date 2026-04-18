@@ -48,7 +48,7 @@ func TestSkateCenterFetcher_FetchEvents_SingleEvent(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -75,7 +75,7 @@ func TestSkateCenterFetcher_FetchEvents_MultipleEvents(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), today)
+	events, err := scraper.FetchEvents(context.Background(), today, today)
 
 	require.NoError(t, err)
 	require.Len(t, events, 2)
@@ -103,7 +103,7 @@ func TestSkateCenterFetcher_FetchEvents_NoEventsToday(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now().In(jst))
+	events, err := scraper.FetchEvents(context.Background(), time.Now().In(jst), time.Now().In(jst))
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -114,7 +114,7 @@ func TestSkateCenterFetcher_FetchEvents_EmptyPage(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
@@ -127,7 +127,7 @@ func TestSkateCenterFetcher_FetchEvents_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -142,7 +142,7 @@ func TestSkateCenterFetcher_FetchEvents_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	events, err := scraper.FetchEvents(ctx, time.Now())
+	events, err := scraper.FetchEvents(ctx, time.Now(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -155,7 +155,7 @@ func TestSkateCenterFetcher_FetchEvents_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.Error(t, err)
 	assert.Nil(t, events)
@@ -172,10 +172,77 @@ func TestSkateCenterFetcher_FetchEvents_NonEventType(t *testing.T) {
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
-	events, err := scraper.FetchEvents(context.Background(), time.Now())
+	events, err := scraper.FetchEvents(context.Background(), time.Now(), time.Now())
 
 	require.NoError(t, err)
 	assert.Empty(t, events)
+}
+
+func TestSkateCenterFetcher_FetchEvents_DateRange(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	from := time.Date(2026, 4, 20, 0, 0, 0, 0, jst)
+	to := time.Date(2026, 4, 26, 0, 0, 0, 0, jst)
+
+	htmlResp := createSkateCenterHTMLMultiple(
+		`{"@type": "Event", "name": "範囲前イベント", "startDate": "2026-04-19T18:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+		`{"@type": "Event", "name": "初日イベント", "startDate": "2026-04-20T11:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+		`{"@type": "Event", "name": "中間イベント", "startDate": "2026-04-23T14:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+		`{"@type": "Event", "name": "最終日イベント", "startDate": "2026-04-26T18:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+		`{"@type": "Event", "name": "範囲後イベント", "startDate": "2026-04-27T10:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+	)
+
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		//nolint:errcheck
+		io.WriteString(w, htmlResp)
+	}))
+	defer server.Close()
+
+	scraper := &SkateCenterFetcher{baseURL: server.URL}
+	events, err := scraper.FetchEvents(context.Background(), from, to)
+
+	require.NoError(t, err)
+	require.Len(t, events, 3)
+	assert.Equal(t, "初日イベント", events[0].Title)
+	assert.Equal(t, 20, events[0].Date.Day())
+	assert.Equal(t, "中間イベント", events[1].Title)
+	assert.Equal(t, 23, events[1].Date.Day())
+	assert.Equal(t, "最終日イベント", events[2].Title)
+	assert.Equal(t, 26, events[2].Date.Day())
+	assert.Equal(t, 1, requestCount)
+}
+
+func TestSkateCenterFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	from := time.Date(2026, 4, 28, 0, 0, 0, 0, jst)
+	to := time.Date(2026, 5, 4, 0, 0, 0, 0, jst)
+
+	htmlResp := createSkateCenterHTMLMultiple(
+		`{"@type": "Event", "name": "4月イベント", "startDate": "2026-04-29T11:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+		`{"@type": "Event", "name": "5月イベント", "startDate": "2026-05-02T14:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
+	)
+
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		//nolint:errcheck
+		io.WriteString(w, htmlResp)
+	}))
+	defer server.Close()
+
+	scraper := &SkateCenterFetcher{baseURL: server.URL}
+	events, err := scraper.FetchEvents(context.Background(), from, to)
+
+	require.NoError(t, err)
+	require.Len(t, events, 2)
+	assert.Equal(t, "4月イベント", events[0].Title)
+	assert.Equal(t, time.April, events[0].Date.Month())
+	assert.Equal(t, "5月イベント", events[1].Title)
+	assert.Equal(t, time.May, events[1].Date.Month())
+	assert.Equal(t, 1, requestCount)
 }
 
 func createSkateCenterMockServer(htmlResponse string) *httptest.Server {

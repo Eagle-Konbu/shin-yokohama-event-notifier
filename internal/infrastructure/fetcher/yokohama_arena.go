@@ -32,32 +32,56 @@ type yokohamaArenaEvent struct {
 	EvStart []string `json:"ev_start"`
 }
 
-func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
+func (s *YokohamaArenaFetcher) FetchEvents(ctx context.Context, from, to time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
-	target := date.In(jst)
-	targetStr := target.Format("2006-01-02")
-	yearMonth := target.Format("200601")
+	from = from.In(jst)
+	to = to.In(jst)
+	fromStr := from.Format("2006-01-02")
+	toStr := to.Format("2006-01-02")
 
-	slog.Info("fetching yokohama arena events", "date", targetStr)
+	slog.Info("fetching yokohama arena events", "from", fromStr, "to", toStr)
 
-	apiURL := fmt.Sprintf("%s/event/%s?_format=json", s.baseURL, yearMonth)
-
-	rawEvents, err := s.fetchJSON(ctx, apiURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch yokohama arena events: %w", err)
+	months := distinctYearMonths(from, to)
+	var allRaw []yokohamaArenaEvent
+	for _, ym := range months {
+		apiURL := fmt.Sprintf("%s/event/%s?_format=json", s.baseURL, ym)
+		rawEvents, err := s.fetchJSON(ctx, apiURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch yokohama arena events: %w", err)
+		}
+		allRaw = append(allRaw, rawEvents...)
 	}
 
 	var events []event.Event
-	for _, raw := range rawEvents {
-		if raw.Path == "" || raw.Date1 != targetStr {
+	for _, raw := range allRaw {
+		if raw.Path == "" {
 			continue
 		}
-		events = append(events, s.buildEvent(raw, target))
+		if raw.Date1 < fromStr || raw.Date1 > toStr {
+			continue
+		}
+		eventDate, err := time.ParseInLocation("2006-01-02", raw.Date1, jst)
+		if err != nil {
+			slog.Error("failed to parse event date", "date", raw.Date1, "err", err)
+			continue
+		}
+		events = append(events, s.buildEvent(raw, eventDate))
 	}
 
 	slog.Info("fetched yokohama arena events", "count", len(events))
 
 	return events, nil
+}
+
+func distinctYearMonths(from, to time.Time) []string {
+	var months []string
+	cur := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
+	end := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
+	for !cur.After(end) {
+		months = append(months, cur.Format("200601"))
+		cur = cur.AddDate(0, 1, 0)
+	}
+	return months
 }
 
 func (s *YokohamaArenaFetcher) fetchJSON(ctx context.Context, apiURL string) ([]yokohamaArenaEvent, error) {

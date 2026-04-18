@@ -34,8 +34,8 @@ func NewMockEventFetcher(venueID event.VenueID) *MockEventFetcher {
 	return &MockEventFetcher{venueID: venueID}
 }
 
-func (m *MockEventFetcher) FetchEvents(ctx context.Context, date time.Time) ([]event.Event, error) {
-	args := m.Called(ctx, date)
+func (m *MockEventFetcher) FetchEvents(ctx context.Context, from, to time.Time) ([]event.Event, error) {
+	args := m.Called(ctx, from, to)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -64,7 +64,7 @@ func TestDailyHandler_HandleRequest_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)
@@ -83,7 +83,7 @@ func TestDailyHandler_HandleRequest_ServiceError(t *testing.T) {
 	ctx := context.Background()
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return(nil, expectedErr)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr)
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)
@@ -106,7 +106,7 @@ func TestDailyHandler_HandleRequest_ContextPropagation(t *testing.T) {
 	ctx := context.WithValue(context.Background(), testKey, "testValue")
 
 	var capturedCtx context.Context
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		capturedCtx = args.Get(0).(context.Context)
 	}).Return([]event.Event{}, nil)
 	mockSender.On("Send", mock.Anything, mock.Anything).Return(nil)
@@ -136,8 +136,7 @@ func TestWeeklyHandler_HandleRequest_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	// NotifyWeeklyEvents fetches events for 7 days
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return([]event.Event{}, nil).Times(7)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
 	mockSender.On("Send", mock.Anything, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)
@@ -156,7 +155,7 @@ func TestWeeklyHandler_HandleRequest_ServiceError(t *testing.T) {
 	ctx := context.Background()
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Return(nil, expectedErr)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr).Once()
 	mockSender.On("Send", ctx, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)
@@ -179,9 +178,9 @@ func TestWeeklyHandler_HandleRequest_ContextPropagation(t *testing.T) {
 	ctx := context.WithValue(context.Background(), testKey, "testValue")
 
 	var capturedCtx context.Context
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		capturedCtx = args.Get(0).(context.Context)
-	}).Return([]event.Event{}, nil).Times(7)
+	}).Return([]event.Event{}, nil).Once()
 	mockSender.On("Send", mock.Anything, mock.Anything).Return(nil)
 
 	err := handler.HandleRequest(ctx)

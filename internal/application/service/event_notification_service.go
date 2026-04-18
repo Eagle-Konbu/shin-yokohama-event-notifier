@@ -34,7 +34,7 @@ func (s *EventNotificationService) NotifyTodayEvents(ctx context.Context) error 
 
 	venues := event.NewAllVenues()
 
-	if err := s.fetchAllEvents(ctx, venues, today); err != nil {
+	if err := s.fetchAllEvents(ctx, venues, today, today); err != nil {
 		failureNotif := notification.NewNotification(
 			"❌ イベント取得エラー",
 			"イベント情報の取得に失敗しました",
@@ -64,23 +64,21 @@ func (s *EventNotificationService) NotifyWeeklyEvents(ctx context.Context) error
 	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, jst)
 
 	venues := event.NewAllVenues()
+	endDate := today.AddDate(0, 0, 6)
 
-	for i := range 7 {
-		date := today.AddDate(0, 0, i)
-		if err := s.fetchAllEvents(ctx, venues, date); err != nil {
-			failureNotif := notification.NewNotification(
-				"❌ イベント取得エラー",
-				"イベント情報の取得に失敗しました",
-				notification.ColorRed,
+	if err := s.fetchAllEvents(ctx, venues, today, endDate); err != nil {
+		failureNotif := notification.NewNotification(
+			"❌ イベント取得エラー",
+			"イベント情報の取得に失敗しました",
+			notification.ColorRed,
+		)
+		if sendErr := s.notificationSender.Send(ctx, failureNotif); sendErr != nil {
+			return errors.Join(
+				fmt.Errorf("failed to fetch events: %w", err),
+				fmt.Errorf("failed to send failure notification: %w", sendErr),
 			)
-			if sendErr := s.notificationSender.Send(ctx, failureNotif); sendErr != nil {
-				return errors.Join(
-					fmt.Errorf("failed to fetch events: %w", err),
-					fmt.Errorf("failed to send failure notification: %w", sendErr),
-				)
-			}
-			return fmt.Errorf("failed to fetch events: %w", err)
 		}
+		return fmt.Errorf("failed to fetch events: %w", err)
 	}
 
 	notif := s.buildWeeklyNotification(venues, today)
@@ -92,7 +90,7 @@ func (s *EventNotificationService) NotifyWeeklyEvents(ctx context.Context) error
 	return nil
 }
 
-func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []*event.Venue, date time.Time) error {
+func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []*event.Venue, from, to time.Time) error {
 	venueMap := make(map[event.VenueID]*event.Venue)
 	for _, v := range venues {
 		venueMap[v.ID] = v
@@ -107,7 +105,7 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 	eg, ctx := errgroup.WithContext(ctx)
 	for i, fetcher := range s.eventFetchers {
 		eg.Go(func() error {
-			events, err := fetcher.FetchEvents(ctx, date)
+			events, err := fetcher.FetchEvents(ctx, from, to)
 			if err != nil {
 				return fmt.Errorf("fetch events for venue %s: %w", fetcher.VenueID(), err)
 			}
