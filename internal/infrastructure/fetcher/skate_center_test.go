@@ -191,7 +191,13 @@ func TestSkateCenterFetcher_FetchEvents_DateRange(t *testing.T) {
 		`{"@type": "Event", "name": "範囲後イベント", "startDate": "2026-04-27T10:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
 	)
 
-	server := createSkateCenterMockServer(htmlResp)
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		//nolint:errcheck
+		io.WriteString(w, htmlResp)
+	}))
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
@@ -205,6 +211,7 @@ func TestSkateCenterFetcher_FetchEvents_DateRange(t *testing.T) {
 	assert.Equal(t, 23, events[1].Date.Day())
 	assert.Equal(t, "最終日イベント", events[2].Title)
 	assert.Equal(t, 26, events[2].Date.Day())
+	assert.Equal(t, 1, requestCount)
 }
 
 func TestSkateCenterFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
@@ -217,7 +224,13 @@ func TestSkateCenterFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 		`{"@type": "Event", "name": "5月イベント", "startDate": "2026-05-02T14:00:00+09:00", "location": {"@type": "Place", "name": "KOSE新横浜スケートセンター"}}`,
 	)
 
-	server := createSkateCenterMockServer(htmlResp)
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		//nolint:errcheck
+		io.WriteString(w, htmlResp)
+	}))
 	defer server.Close()
 
 	scraper := &SkateCenterFetcher{baseURL: server.URL}
@@ -229,6 +242,7 @@ func TestSkateCenterFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 	assert.Equal(t, time.April, events[0].Date.Month())
 	assert.Equal(t, "5月イベント", events[1].Title)
 	assert.Equal(t, time.May, events[1].Date.Month())
+	assert.Equal(t, 1, requestCount)
 }
 
 func createSkateCenterMockServer(htmlResponse string) *httptest.Server {

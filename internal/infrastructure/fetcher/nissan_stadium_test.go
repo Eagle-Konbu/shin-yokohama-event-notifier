@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -493,7 +494,29 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_SameMonth(t *testing.T) {
 		"day26": createMockDetailHTML("26日イベント", "2026年1月26日", "18時", "日産スタジアム"),
 	}
 
-	server := createMockServerMultiDetail(calendarHTML, detailHTMLMap)
+	var calendarCount atomic.Int32
+	var detailCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/calendar/") && !strings.Contains(r.URL.Path, "detail") {
+			calendarCount.Add(1)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			//nolint:errcheck
+			io.WriteString(w, calendarHTML)
+		} else if strings.Contains(r.URL.Path, "detail.php") {
+			detailCount.Add(1)
+			rawQuery := r.URL.RawQuery
+			eventID := strings.TrimPrefix(rawQuery, "id")
+			if detailHTML, ok := detailHTMLMap[eventID]; ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				//nolint:errcheck
+				io.WriteString(w, detailHTML)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
 	defer server.Close()
 
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
@@ -503,6 +526,8 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_SameMonth(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, events, 3)
+	assert.Equal(t, int32(1), calendarCount.Load())
+	assert.Equal(t, int32(3), detailCount.Load())
 }
 
 func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
@@ -568,7 +593,34 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 		"feb3":  createMockDetailHTML("2月3日イベント", "2026年2月3日", "15時", "日産スタジアム"),
 	}
 
-	server := createMockServerCrossMonth(currentMonthCalendar, nextMonthCalendar, detailHTMLMap)
+	var calendarCount atomic.Int32
+	var detailCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/calendar/") && !strings.Contains(r.URL.Path, "detail") {
+			calendarCount.Add(1)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			if r.URL.Query().Get("m") == "x" {
+				//nolint:errcheck
+				io.WriteString(w, nextMonthCalendar)
+			} else {
+				//nolint:errcheck
+				io.WriteString(w, currentMonthCalendar)
+			}
+		} else if strings.Contains(r.URL.Path, "detail.php") {
+			detailCount.Add(1)
+			rawQuery := r.URL.RawQuery
+			eventID := strings.TrimPrefix(rawQuery, "id")
+			if detailHTML, ok := detailHTMLMap[eventID]; ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				//nolint:errcheck
+				io.WriteString(w, detailHTML)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
 	defer server.Close()
 
 	scraper := &NissanStadiumFetcher{baseURL: server.URL}
@@ -578,6 +630,8 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, events, 4)
+	assert.Equal(t, int32(2), calendarCount.Load())
+	assert.Equal(t, int32(4), detailCount.Load())
 }
 
 func TestBuildTargetDays(t *testing.T) {
@@ -827,33 +881,6 @@ func createMockServerMultiDetail(calendarHTML string, detailHTMLMap map[string]s
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			//nolint:errcheck
 			io.WriteString(w, calendarHTML)
-		} else if strings.Contains(r.URL.Path, "detail.php") {
-			rawQuery := r.URL.RawQuery
-			eventID := strings.TrimPrefix(rawQuery, "id")
-			if detailHTML, ok := detailHTMLMap[eventID]; ok {
-				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				//nolint:errcheck
-				io.WriteString(w, detailHTML)
-			} else {
-				w.WriteHeader(http.StatusNotFound)
-			}
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-}
-
-func createMockServerCrossMonth(currentMonthCalendar, nextMonthCalendar string, detailHTMLMap map[string]string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/calendar/") && !strings.Contains(r.URL.Path, "detail") {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			if r.URL.Query().Get("m") == "x" {
-				//nolint:errcheck
-				io.WriteString(w, nextMonthCalendar)
-			} else {
-				//nolint:errcheck
-				io.WriteString(w, currentMonthCalendar)
-			}
 		} else if strings.Contains(r.URL.Path, "detail.php") {
 			rawQuery := r.URL.RawQuery
 			eventID := strings.TrimPrefix(rawQuery, "id")

@@ -313,7 +313,13 @@ func TestYokohamaArenaFetcher_FetchEvents_DateRange_SameMonth(t *testing.T) {
 		{"date1": "2026-04-27", "title": "範囲後イベント", "ev_open": [], "ev_start": ["19:00"], "path": "/event/detail/after"}
 	]`
 
-	server := createYokohamaArenaMockServer(jsonResp)
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/json")
+		//nolint:errcheck
+		io.WriteString(w, jsonResp)
+	}))
 	defer server.Close()
 
 	scraper := &YokohamaArenaFetcher{baseURL: server.URL}
@@ -327,6 +333,7 @@ func TestYokohamaArenaFetcher_FetchEvents_DateRange_SameMonth(t *testing.T) {
 	assert.Equal(t, 23, events[1].Date.Day())
 	assert.Equal(t, "最終日イベント", events[2].Title)
 	assert.Equal(t, 26, events[2].Date.Day())
+	assert.Equal(t, 1, requestCount)
 }
 
 func TestYokohamaArenaFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
