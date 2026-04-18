@@ -11,8 +11,10 @@ import (
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/infrastructure/fetcher"
 )
 
+var loadConfig = config.LoadConfig
+
 func BuildEventService(ctx context.Context) (*service.EventNotificationService, error) {
-	cfg, err := config.LoadConfig(ctx)
+	cfg, err := loadConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
