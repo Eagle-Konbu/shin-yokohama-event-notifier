@@ -45,9 +45,9 @@ func main() {
 	}
 
 	type fetchResult struct {
+		err     error
 		venueID event.VenueID
 		events  []event.Event
-		err     error
 	}
 	results := make([]fetchResult, len(fetchers))
 
@@ -59,7 +59,9 @@ func main() {
 			return nil
 		})
 	}
-	eg.Wait()
+	if err := eg.Wait(); err != nil {
+		log.Fatalf("Failed to fetch events: %v", err)
+	}
 
 	var hasError bool
 	for _, r := range results {
