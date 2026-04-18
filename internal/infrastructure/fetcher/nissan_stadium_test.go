@@ -611,11 +611,76 @@ func TestBuildTargetDays(t *testing.T) {
 				30: true, 31: true, 1: true, 2: true,
 			},
 		},
+		{
+			name: "non-midnight times normalized",
+			from: time.Date(2026, 1, 20, 15, 30, 0, 0, jst),
+			to:   time.Date(2026, 1, 22, 8, 0, 0, 0, jst),
+			expected: map[int]bool{
+				20: true, 21: true, 22: true,
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := buildTargetDays(tt.from, tt.to)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestNissanStadiumFetcher_FetchEvents_RangeExceedsTwoMonths(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, jst)
+	to := time.Date(2026, 3, 1, 0, 0, 0, 0, jst)
+
+	scraper := &NissanStadiumFetcher{baseURL: "http://localhost"}
+
+	events, err := scraper.FetchEvents(context.Background(), from, to)
+
+	require.Error(t, err)
+	assert.Nil(t, events)
+	assert.ErrorIs(t, err, errRangeExceedsLimit)
+}
+
+func TestDistinctMonthCount(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+
+	tests := []struct {
+		from     time.Time
+		to       time.Time
+		name     string
+		expected int
+	}{
+		{
+			name:     "same month",
+			from:     time.Date(2026, 4, 1, 0, 0, 0, 0, jst),
+			to:       time.Date(2026, 4, 30, 0, 0, 0, 0, jst),
+			expected: 1,
+		},
+		{
+			name:     "two months",
+			from:     time.Date(2026, 4, 27, 0, 0, 0, 0, jst),
+			to:       time.Date(2026, 5, 3, 0, 0, 0, 0, jst),
+			expected: 2,
+		},
+		{
+			name:     "three months",
+			from:     time.Date(2026, 1, 1, 0, 0, 0, 0, jst),
+			to:       time.Date(2026, 3, 1, 0, 0, 0, 0, jst),
+			expected: 3,
+		},
+		{
+			name:     "cross year",
+			from:     time.Date(2026, 12, 1, 0, 0, 0, 0, jst),
+			to:       time.Date(2027, 1, 1, 0, 0, 0, 0, jst),
+			expected: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := distinctMonthCount(tt.from, tt.to)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

@@ -32,12 +32,19 @@ type eventCandidate struct {
 	title string
 }
 
-var errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
+var (
+	errNotForNissanStadium = errors.New("event is not for Nissan Stadium")
+	errRangeExceedsLimit   = errors.New("date range exceeds the supported 2-month window")
+)
 
 func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, from, to time.Time) ([]event.Event, error) {
 	jst := time.FixedZone("JST", 9*60*60)
 	from = from.In(jst)
 	to = to.In(jst)
+
+	if distinctMonthCount(from, to) > 2 {
+		return nil, errRangeExceedsLimit
+	}
 
 	slog.Info("fetching nissan stadium events", "from", from.Format("2006-01-02"), "to", to.Format("2006-01-02"))
 
@@ -129,11 +136,19 @@ func (s *NissanStadiumFetcher) fetchEventCandidatesForMonth(ctx context.Context,
 }
 
 func buildTargetDays(from, to time.Time) map[int]bool {
+	loc := from.Location()
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
+	to = time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, loc)
+
 	days := make(map[int]bool)
 	for d := from; !d.After(to); d = d.AddDate(0, 0, 1) {
 		days[d.Day()] = true
 	}
 	return days
+}
+
+func distinctMonthCount(from, to time.Time) int {
+	return (to.Year()-from.Year())*12 + int(to.Month()-from.Month()) + 1
 }
 
 func (s *NissanStadiumFetcher) parseCalendarRow(row *colly.HTMLElement, currentDate *int, targetDays map[int]bool) (eventCandidate, bool) {
