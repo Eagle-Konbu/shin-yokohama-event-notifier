@@ -131,9 +131,22 @@ func (s *EventNotificationService) fetchAllEvents(ctx context.Context, venues []
 
 func (s *EventNotificationService) buildDailyNotification(venues []*event.Venue) *notification.Notification {
 	color := s.determineColor(venues)
+
+	totalEvents := 0
+	for _, venue := range venues {
+		totalEvents += len(venue.Events)
+	}
+
+	var description string
+	if totalEvents == 0 {
+		description = "本日の開催イベントはありません"
+	} else {
+		description = fmt.Sprintf("本日のイベント数: %d件", totalEvents)
+	}
+
 	notif := notification.NewNotification(
 		"📅 新横浜 イベント情報",
-		"",
+		description,
 		color,
 	)
 
