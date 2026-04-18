@@ -12,11 +12,7 @@ import (
 )
 
 func BuildEventService(ctx context.Context) (*service.EventNotificationService, error) {
-	return BuildEventServiceWithClient(ctx, nil)
-}
-
-func BuildEventServiceWithClient(ctx context.Context, client config.SecretsManagerClient) (*service.EventNotificationService, error) {
-	cfg, err := config.LoadConfigWithClient(ctx, client)
+	cfg, err := config.LoadConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
