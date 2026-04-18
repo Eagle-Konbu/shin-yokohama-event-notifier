@@ -543,6 +543,31 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 				<table>
 					<tbody>
 						<tr>
+							<th>1</th>
+							<td>木</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan1">1月1日イベント</a></td>
+						</tr>
+						<tr>
+							<th>2</th>
+							<td>金</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan2">1月2日イベント</a></td>
+						</tr>
+						<tr>
+							<th>3</th>
+							<td>土</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan3">1月3日イベント</a></td>
+						</tr>
+						<tr>
+							<th>4</th>
+							<td>日</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan4">1月4日イベント</a></td>
+						</tr>
+						<tr>
+							<th>5</th>
+							<td>月</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan5">1月5日イベント</a></td>
+						</tr>
+						<tr>
 							<th>28</th>
 							<td>水</td>
 							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan28">1月28日イベント</a></td>
@@ -571,14 +596,24 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb1">2月1日イベント</a></td>
 						</tr>
 						<tr>
+							<th>2</th>
+							<td>月</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb2">2月2日イベント</a></td>
+						</tr>
+						<tr>
 							<th>3</th>
 							<td>火</td>
 							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb3">2月3日イベント</a></td>
 						</tr>
 						<tr>
+							<th>4</th>
+							<td>水</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb4">2月4日イベント</a></td>
+						</tr>
+						<tr>
 							<th>5</th>
 							<td>木</td>
-							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb5">範囲後イベント</a></td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb5">2月5日イベント</a></td>
 						</tr>
 					</tbody>
 				</table>
@@ -590,6 +625,7 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 		"jan28": createMockDetailHTML("1月28日イベント", "2026年1月28日", "14時", "日産スタジアム"),
 		"jan30": createMockDetailHTML("1月30日イベント", "2026年1月30日", "18時", "日産スタジアム"),
 		"feb1":  createMockDetailHTML("2月1日イベント", "2026年2月1日", "10時", "日産スタジアム"),
+		"feb2":  createMockDetailHTML("2月2日イベント", "2026年2月2日", "12時", "日産スタジアム"),
 		"feb3":  createMockDetailHTML("2月3日イベント", "2026年2月3日", "15時", "日産スタジアム"),
 	}
 
@@ -629,9 +665,9 @@ func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
 	events, err := scraper.FetchEvents(ctx, from, to)
 
 	require.NoError(t, err)
-	require.Len(t, events, 4)
+	require.Len(t, events, 5)
 	assert.Equal(t, int32(2), calendarCount.Load())
-	assert.Equal(t, int32(4), detailCount.Load())
+	assert.Equal(t, int32(5), detailCount.Load())
 }
 
 func TestBuildTargetDays(t *testing.T) {

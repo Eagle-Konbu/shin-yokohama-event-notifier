@@ -75,13 +75,19 @@ func (s *NissanStadiumFetcher) FetchEvents(ctx context.Context, from, to time.Ti
 func (s *NissanStadiumFetcher) fetchEventCandidatesForRange(ctx context.Context, from, to time.Time) ([]eventCandidate, error) {
 	crossMonth := from.Year() != to.Year() || from.Month() != to.Month()
 
-	candidates, err := s.fetchEventCandidatesForMonth(ctx, from, to, s.baseURL+"/calendar/")
+	currentMonthTo := to
+	if crossMonth {
+		currentMonthTo = endOfMonth(from)
+	}
+
+	candidates, err := s.fetchEventCandidatesForMonth(ctx, from, currentMonthTo, s.baseURL+"/calendar/")
 	if err != nil {
 		return nil, err
 	}
 
 	if crossMonth {
-		nextMonthCandidates, err := s.fetchEventCandidatesForMonth(ctx, from, to, s.baseURL+"/calendar/?m=x")
+		nextMonthFrom := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
+		nextMonthCandidates, err := s.fetchEventCandidatesForMonth(ctx, nextMonthFrom, to, s.baseURL+"/calendar/?m=x")
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +151,11 @@ func buildTargetDays(from, to time.Time) map[int]bool {
 		days[d.Day()] = true
 	}
 	return days
+}
+
+func endOfMonth(t time.Time) time.Time {
+	loc := t.Location()
+	return time.Date(t.Year(), t.Month()+1, 0, 0, 0, 0, 0, loc)
 }
 
 func distinctMonthCount(from, to time.Time) int {
