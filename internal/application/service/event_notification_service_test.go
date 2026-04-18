@@ -518,9 +518,9 @@ func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
 func TestNotifyWeeklyEvents_NoEvents(t *testing.T) {
 	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
 
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
+	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
+	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
@@ -543,7 +543,7 @@ func TestNotifyWeeklyEvents_FetchError(t *testing.T) {
 	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr)
+	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr).Once()
 
 	var sentNotification *notification.Notification
 	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
