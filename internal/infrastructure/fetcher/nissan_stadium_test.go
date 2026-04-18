@@ -444,6 +444,183 @@ func TestNissanStadiumFetcher_FetchEvents_InvalidTimeFormat_LogsError(t *testing
 	assert.Empty(t, events[0].Schedules, "Schedules should be empty when time parsing fails")
 }
 
+func TestNissanStadiumFetcher_FetchEvents_DateRange_SameMonth(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	from := time.Date(2026, 1, 20, 0, 0, 0, 0, jst)
+	to := time.Date(2026, 1, 26, 0, 0, 0, 0, jst)
+
+	calendarHTML := `
+		<html><body>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>19</th>
+							<td>月</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=before1">範囲前イベント</a></td>
+						</tr>
+						<tr>
+							<th>20</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=day20">20日イベント</a></td>
+						</tr>
+						<tr>
+							<th>23</th>
+							<td>金</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=day23">23日イベント</a></td>
+						</tr>
+						<tr>
+							<th>26</th>
+							<td>月</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=day26">26日イベント</a></td>
+						</tr>
+						<tr>
+							<th>27</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=after1">範囲後イベント</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		</body></html>`
+
+	detailHTMLMap := map[string]string{
+		"day20": createMockDetailHTML("20日イベント", "2026年1月20日", "10時", "日産スタジアム"),
+		"day23": createMockDetailHTML("23日イベント", "2026年1月23日", "14時", "日産スタジアム"),
+		"day26": createMockDetailHTML("26日イベント", "2026年1月26日", "18時", "日産スタジアム"),
+	}
+
+	server := createMockServerMultiDetail(calendarHTML, detailHTMLMap)
+	defer server.Close()
+
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx, from, to)
+
+	require.NoError(t, err)
+	require.Len(t, events, 3)
+}
+
+func TestNissanStadiumFetcher_FetchEvents_DateRange_CrossMonth(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+	from := time.Date(2026, 1, 28, 0, 0, 0, 0, jst)
+	to := time.Date(2026, 2, 3, 0, 0, 0, 0, jst)
+
+	currentMonthCalendar := `
+		<html><body>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>28</th>
+							<td>水</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan28">1月28日イベント</a></td>
+						</tr>
+						<tr>
+							<th>30</th>
+							<td>金</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=jan30">1月30日イベント</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		</body></html>`
+
+	nextMonthCalendar := `
+		<html><body>
+		<div id="areacontents01">
+			<div></div>
+			<div>
+				<table>
+					<tbody>
+						<tr>
+							<th>1</th>
+							<td>日</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb1">2月1日イベント</a></td>
+						</tr>
+						<tr>
+							<th>3</th>
+							<td>火</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb3">2月3日イベント</a></td>
+						</tr>
+						<tr>
+							<th>5</th>
+							<td>木</td>
+							<td><a href="#">日産スタジアム</a><a href="detail.php?id=feb5">範囲後イベント</a></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		</body></html>`
+
+	detailHTMLMap := map[string]string{
+		"jan28": createMockDetailHTML("1月28日イベント", "2026年1月28日", "14時", "日産スタジアム"),
+		"jan30": createMockDetailHTML("1月30日イベント", "2026年1月30日", "18時", "日産スタジアム"),
+		"feb1":  createMockDetailHTML("2月1日イベント", "2026年2月1日", "10時", "日産スタジアム"),
+		"feb3":  createMockDetailHTML("2月3日イベント", "2026年2月3日", "15時", "日産スタジアム"),
+	}
+
+	server := createMockServerCrossMonth(currentMonthCalendar, nextMonthCalendar, detailHTMLMap)
+	defer server.Close()
+
+	scraper := &NissanStadiumFetcher{baseURL: server.URL}
+	ctx := context.Background()
+
+	events, err := scraper.FetchEvents(ctx, from, to)
+
+	require.NoError(t, err)
+	require.Len(t, events, 4)
+}
+
+func TestBuildTargetDays(t *testing.T) {
+	jst := time.FixedZone("JST", 9*60*60)
+
+	tests := []struct {
+		from     time.Time
+		to       time.Time
+		expected map[int]bool
+		name     string
+	}{
+		{
+			name:     "single day",
+			from:     time.Date(2026, 1, 20, 0, 0, 0, 0, jst),
+			to:       time.Date(2026, 1, 20, 0, 0, 0, 0, jst),
+			expected: map[int]bool{20: true},
+		},
+		{
+			name: "week range same month",
+			from: time.Date(2026, 1, 20, 0, 0, 0, 0, jst),
+			to:   time.Date(2026, 1, 26, 0, 0, 0, 0, jst),
+			expected: map[int]bool{
+				20: true, 21: true, 22: true, 23: true, 24: true, 25: true, 26: true,
+			},
+		},
+		{
+			name: "cross month",
+			from: time.Date(2026, 1, 30, 0, 0, 0, 0, jst),
+			to:   time.Date(2026, 2, 2, 0, 0, 0, 0, jst),
+			expected: map[int]bool{
+				30: true, 31: true, 1: true, 2: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildTargetDays(tt.from, tt.to)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestExtractEventID(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -585,6 +762,33 @@ func createMockServerMultiDetail(calendarHTML string, detailHTMLMap map[string]s
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			//nolint:errcheck
 			io.WriteString(w, calendarHTML)
+		} else if strings.Contains(r.URL.Path, "detail.php") {
+			rawQuery := r.URL.RawQuery
+			eventID := strings.TrimPrefix(rawQuery, "id")
+			if detailHTML, ok := detailHTMLMap[eventID]; ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				//nolint:errcheck
+				io.WriteString(w, detailHTML)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
+func createMockServerCrossMonth(currentMonthCalendar, nextMonthCalendar string, detailHTMLMap map[string]string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/calendar/") && !strings.Contains(r.URL.Path, "detail") {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			if r.URL.Query().Get("m") == "x" {
+				//nolint:errcheck
+				io.WriteString(w, nextMonthCalendar)
+			} else {
+				//nolint:errcheck
+				io.WriteString(w, currentMonthCalendar)
+			}
 		} else if strings.Contains(r.URL.Path, "detail.php") {
 			rawQuery := r.URL.RawQuery
 			eventID := strings.TrimPrefix(rawQuery, "id")
