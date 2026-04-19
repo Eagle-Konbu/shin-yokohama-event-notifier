@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.1
 	github.com/gocolly/colly/v2 v2.3.0
 	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.47.0
 	golang.org/x/sync v0.19.0
 )
@@ -40,9 +41,7 @@ require (
 	github.com/nlnwa/whatwg-url v0.6.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
