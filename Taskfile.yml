@@ -13,6 +13,11 @@ tasks:
       - mkdir -p .build/weekly
       - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o .build/weekly/bootstrap ./cmd/lambda-weekly/
 
+  generate:
+    desc: Generate code (mocks, etc.)
+    cmds:
+      - go generate ./...
+
   test:
     desc: Run all tests
     cmds:
@@ -38,7 +43,7 @@ tasks:
     cmds:
       - |
         FAIL=0
-        for f in $(find . -name "*.go" ! -path "./vendor/*"); do
+        for f in $(find . -name "*.go" ! -path "./vendor/*" ! -path "*/mock_ports/*"); do
           if ! goreg "$f" | diff -q "$f" - >/dev/null 2>&1; then
             echo "Import organization issue: $f"
             FAIL=1
@@ -50,7 +55,7 @@ tasks:
     desc: Fix import organization with goreg
     cmds:
       - |
-        for f in $(find . -name "*.go" ! -path "./vendor/*"); do
+        for f in $(find . -name "*.go" ! -path "./vendor/*" ! -path "*/mock_ports/*"); do
           goreg -w "$f"
         done
 
