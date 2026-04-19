@@ -49,13 +49,7 @@ jobs:
           tflint_version: latest
 
       - name: Install tfsec
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-          sudo mv ./tfsec /usr/local/bin/
+        run: curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
 
       - name: Install terraform-docs
-        run: |
-          curl -sSLo terraform-docs.tar.gz https://terraform-docs.io/dl/v0.19.0/terraform-docs-v0.19.0-linux-amd64.tar.gz
-          tar -xzf terraform-docs.tar.gz terraform-docs
-          sudo mv terraform-docs /usr/local/bin/
-          rm terraform-docs.tar.gz
+        run: go install github.com/terraform-docs/terraform-docs@v0.19.0
