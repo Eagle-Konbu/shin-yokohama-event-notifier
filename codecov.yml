@@ -25,6 +25,7 @@ comment:
 ignore:
   - "**/*_test.go"
   - "**/mocks_test.go"
+  - "**/mock_ports/**"
   - "cmd/lambda-daily/main.go"
   - "cmd/lambda-weekly/main.go"
   - "cmd/local/main.go"
