@@ -8,66 +8,45 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/event"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/notification"
 	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports"
+	"github.com/Eagle-Konbu/shin-yokohama-event-notifier/internal/domain/ports/mock_ports"
 )
 
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
-type MockNotificationSender struct {
-	mock.Mock
-}
-
-func (m *MockNotificationSender) Send(ctx context.Context, notif *notification.Notification) error {
-	args := m.Called(ctx, notif)
-	return args.Error(0)
-}
-
-type MockEventFetcher struct {
-	mock.Mock
-	venueID event.VenueID
-}
-
-func NewMockEventFetcher(venueID event.VenueID) *MockEventFetcher {
-	return &MockEventFetcher{venueID: venueID}
-}
-
-func (m *MockEventFetcher) FetchEvents(ctx context.Context, from, to time.Time) ([]event.Event, error) {
-	args := m.Called(ctx, from, to)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]event.Event), args.Error(1)
-}
-
-func (m *MockEventFetcher) VenueID() event.VenueID {
-	return m.venueID
-}
-
-func setupSingleFetcherService() (*MockNotificationSender, *MockEventFetcher, *EventNotificationService, context.Context) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher := NewMockEventFetcher(event.VenueIDYokohamaArena)
+func setupSingleFetcherService(t *testing.T) (*mock_ports.MockNotificationSender, *mock_ports.MockEventFetcher, *EventNotificationService, context.Context) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	mockSender := mock_ports.NewMockNotificationSender(ctrl)
+	mockFetcher := mock_ports.NewMockEventFetcher(ctrl)
+	mockFetcher.EXPECT().VenueID().Return(event.VenueIDYokohamaArena).AnyTimes()
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher})
 	return mockSender, mockFetcher, service, context.Background()
 }
 
-func setupThreeFetcherService() (*MockNotificationSender, *MockEventFetcher, *MockEventFetcher, *MockEventFetcher, *EventNotificationService, context.Context) {
-	mockSender := new(MockNotificationSender)
-	mockFetcher1 := NewMockEventFetcher(event.VenueIDYokohamaArena)
-	mockFetcher2 := NewMockEventFetcher(event.VenueIDNissanStadium)
-	mockFetcher3 := NewMockEventFetcher(event.VenueIDSkateCenter)
+func setupThreeFetcherService(t *testing.T) (*mock_ports.MockNotificationSender, *mock_ports.MockEventFetcher, *mock_ports.MockEventFetcher, *mock_ports.MockEventFetcher, *EventNotificationService, context.Context) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	mockSender := mock_ports.NewMockNotificationSender(ctrl)
+	mockFetcher1 := mock_ports.NewMockEventFetcher(ctrl)
+	mockFetcher2 := mock_ports.NewMockEventFetcher(ctrl)
+	mockFetcher3 := mock_ports.NewMockEventFetcher(ctrl)
+	mockFetcher1.EXPECT().VenueID().Return(event.VenueIDYokohamaArena).AnyTimes()
+	mockFetcher2.EXPECT().VenueID().Return(event.VenueIDNissanStadium).AnyTimes()
+	mockFetcher3.EXPECT().VenueID().Return(event.VenueIDSkateCenter).AnyTimes()
 	service := NewEventNotificationService(mockSender, []ports.EventFetcher{mockFetcher1, mockFetcher2, mockFetcher3})
 	return mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, context.Background()
 }
 
 func TestNewEventNotificationService(t *testing.T) {
-	_, _, service, _ := setupSingleFetcherService()
+	_, _, service, _ := setupSingleFetcherService(t)
 
 	require.NotNil(t, service)
 	assert.NotNil(t, service.notificationSender)
@@ -75,16 +54,17 @@ func TestNewEventNotificationService(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_NoEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -100,7 +80,7 @@ func TestNotifyTodayEvents_NoEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -111,14 +91,15 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -133,7 +114,7 @@ func TestNotifyTodayEvents_OneVenueWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	arenaEvents := []event.Event{
 		{
@@ -147,14 +128,15 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 14, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(arenaEvents, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(stadiumEvents, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(arenaEvents, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(stadiumEvents, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -165,7 +147,7 @@ func TestNotifyTodayEvents_TwoVenuesWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	arenaEvents := []event.Event{
 		{
@@ -185,14 +167,15 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 10, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(arenaEvents, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(stadiumEvents, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(skateEvents, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(arenaEvents, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(stadiumEvents, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(skateEvents, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -203,7 +186,7 @@ func TestNotifyTodayEvents_AllVenuesWithEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -221,14 +204,15 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -240,7 +224,7 @@ func TestNotifyTodayEvents_MultipleEventsAtSameVenue(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -248,14 +232,15 @@ func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -268,7 +253,7 @@ func TestNotifyTodayEvents_EventWithoutStartTime(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -283,14 +268,15 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -303,7 +289,7 @@ func TestNotifyTodayEvents_MixedStartTimeEvents(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -314,14 +300,15 @@ func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -333,7 +320,7 @@ func TestNotifyTodayEvents_EventWithOpenTime(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -347,14 +334,15 @@ func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -366,7 +354,7 @@ func TestNotifyTodayEvents_EventWithBothOpenAndStartTime(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -384,14 +372,15 @@ func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
 			},
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -403,16 +392,17 @@ func TestNotifyTodayEvents_EventWithMultipleSchedules(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -425,15 +415,16 @@ func TestNotifyTodayEvents_VenueOrder(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_FetchError(t *testing.T) {
-	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService(t)
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr)
+	mockFetcher.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -448,12 +439,12 @@ func TestNotifyTodayEvents_FetchError(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T) {
-	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService(t)
 	fetchErr := errors.New("fetch error")
 	sendErr := errors.New("send error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, fetchErr)
-	mockSender.On("Send", ctx, mock.Anything).Return(sendErr)
+	mockFetcher.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fetchErr)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).Return(sendErr)
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -465,11 +456,11 @@ func TestNotifyTodayEvents_FetchError_SendFailureNotificationFails(t *testing.T)
 }
 
 func TestNotifyTodayEvents_SendError(t *testing.T) {
-	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService(t)
 	expectedErr := errors.New("send error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockSender.On("Send", ctx, mock.Anything).Return(expectedErr)
+	mockFetcher.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).Return(expectedErr)
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -479,7 +470,7 @@ func TestNotifyTodayEvents_SendError(t *testing.T) {
 }
 
 func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
 	events := []event.Event{
 		{
@@ -495,14 +486,15 @@ func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
 			Date:  time.Date(2026, 1, 28, 0, 0, 0, 0, time.Local),
 		},
 	}
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(events, nil)
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil)
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(events, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyTodayEvents(ctx)
 
@@ -516,16 +508,17 @@ func TestNotifyTodayEvents_BothNilStartTime_SortsByTitle(t *testing.T) {
 // Weekly notification tests
 
 func TestNotifyWeeklyEvents_NoEvents(t *testing.T) {
-	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService()
+	mockSender, mockFetcher1, mockFetcher2, mockFetcher3, service, ctx := setupThreeFetcherService(t)
 
-	mockFetcher1.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
-	mockFetcher2.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
-	mockFetcher3.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return([]event.Event{}, nil).Once()
+	mockFetcher1.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher2.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
+	mockFetcher3.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return([]event.Event{}, nil)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyWeeklyEvents(ctx)
 
@@ -540,15 +533,16 @@ func TestNotifyWeeklyEvents_NoEvents(t *testing.T) {
 }
 
 func TestNotifyWeeklyEvents_FetchError(t *testing.T) {
-	mockSender, mockFetcher, service, ctx := setupSingleFetcherService()
+	mockSender, mockFetcher, service, ctx := setupSingleFetcherService(t)
 	expectedErr := errors.New("fetch error")
 
-	mockFetcher.On("FetchEvents", mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr).Once()
+	mockFetcher.EXPECT().FetchEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
 	var sentNotification *notification.Notification
-	mockSender.On("Send", ctx, mock.Anything).Run(func(args mock.Arguments) {
-		sentNotification = args.Get(1).(*notification.Notification)
-	}).Return(nil)
+	mockSender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, notif *notification.Notification) error {
+		sentNotification = notif
+		return nil
+	})
 
 	err := service.NotifyWeeklyEvents(ctx)
 
